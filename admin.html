@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel | qbit-glitch</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #09090b;
+      --surface: #111113;
+      --surface-2: #18181b;
+      --border: #27272a;
+      --border-hover: #3f3f46;
+      --text: #fafafa;
+      --text-secondary: #a1a1aa;
+      --text-muted: #71717a;
+      --accent: #818cf8;
+      --accent-dim: rgba(129, 140, 248, 0.1);
+      --accent-glow: rgba(129, 140, 248, 0.15);
+      --green: #34d399;
+      --green-dim: rgba(52, 211, 153, 0.1);
+      --red: #f87171;
+      --red-dim: rgba(248, 113, 113, 0.1);
+      --yellow: #fbbf24;
+      --yellow-dim: rgba(251, 191, 36, 0.1);
+      --radius: 12px;
+      --radius-sm: 8px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+    }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    ::selection {
+      background: var(--accent);
+      color: var(--bg);
+    }
+
+    /* ─── Layout ─── */
+    .admin-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    /* ─── Header ─── */
+    .admin-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 2rem;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 2rem;
+    }
+    .admin-header h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .admin-header h1 span {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      padding: 0.25rem 0.6rem;
+      background: var(--accent-dim);
+      color: var(--accent);
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .admin-nav {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .admin-nav a {
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      padding: 0.5rem 1rem;
+      border-radius: var(--radius-sm);
+      transition: all 0.2s;
+    }
+    .admin-nav a:hover {
+      color: var(--text);
+      background: var(--surface);
+      text-decoration: none;
+    }
+
+    /* ─── Status bar ─── */
+    .status-bar {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.75rem 1.25rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      margin-bottom: 2rem;
+      font-size: 0.85rem;
+    }
+    .status-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--red);
+      transition: background 0.3s;
+    }
+    .status-dot.connected { background: var(--green); }
+    .status-text { color: var(--text-muted); }
+    .status-count {
+      margin-left: auto;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+    }
+
+    /* ─── Toast notifications ─── */
+    .toast-container {
+      position: fixed;
+      top: 1.5rem;
+      right: 1.5rem;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .toast {
+      padding: 0.75rem 1.25rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 0.85rem;
+      animation: toastIn 0.3s ease, toastOut 0.3s ease 2.7s forwards;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .toast.success { border-color: rgba(52, 211, 153, 0.3); }
+    .toast.success::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
+    .toast.error { border-color: rgba(248, 113, 113, 0.3); }
+    .toast.error::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--red); }
+    @keyframes toastIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+    @keyframes toastOut { from { opacity: 1; } to { opacity: 0; transform: translateY(-10px); } }
+
+    /* ─── Toolbar ─── */
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .toolbar h2 {
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+
+    /* ─── Buttons ─── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.6rem 1.25rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.85rem;
+      font-weight: 500;
+      font-family: 'Inter', sans-serif;
+      transition: all 0.2s;
+      cursor: pointer;
+      border: none;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: var(--bg);
+    }
+    .btn-primary:hover {
+      background: #6366f1;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 20px var(--accent-glow);
+    }
+    .btn-secondary {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    .btn-secondary:hover {
+      border-color: var(--border-hover);
+      background: var(--surface);
+    }
+    .btn-danger {
+      background: transparent;
+      border: 1px solid rgba(248, 113, 113, 0.2);
+      color: var(--red);
+    }
+    .btn-danger:hover {
+      background: var(--red-dim);
+      border-color: rgba(248, 113, 113, 0.4);
+    }
+    .btn-sm {
+      padding: 0.4rem 0.8rem;
+      font-size: 0.75rem;
+    }
+
+    /* ─── Posts table ─── */
+    .posts-table {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .posts-table-header {
+      display: grid;
+      grid-template-columns: 60px 1fr 140px 120px 150px;
+      padding: 0.75rem 1.25rem;
+      background: var(--surface-2);
+      border-bottom: 1px solid var(--border);
+      font-size: 0.7rem;
+      font-family: 'JetBrains Mono', monospace;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+    }
+    .post-row {
+      display: grid;
+      grid-template-columns: 60px 1fr 140px 120px 150px;
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      align-items: center;
+      transition: background 0.15s;
+    }
+    .post-row:last-child { border-bottom: none; }
+    .post-row:hover { background: rgba(255,255,255,0.02); }
+    .post-row .post-id {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+    .post-row .post-title {
+      font-weight: 500;
+      font-size: 0.9rem;
+    }
+    .post-row .post-title small {
+      display: block;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      font-weight: 400;
+      margin-top: 0.15rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 400px;
+    }
+    .post-row .post-category {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 0.2rem 0.6rem;
+      border-radius: 4px;
+      width: fit-content;
+    }
+    .post-category.mini-project { background: var(--green-dim); color: var(--green); }
+    .post-category.tutorial { background: var(--yellow-dim); color: var(--yellow); }
+    .post-category.deep-dive { background: rgba(244, 114, 182, 0.1); color: #f472b6; }
+    .post-row .post-date {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+    .post-row .post-actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+    .empty-state {
+      padding: 3rem;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    /* ─── Editor modal ─── */
+    .editor-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(8px);
+      z-index: 2000;
+      display: none;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 2rem;
+      overflow-y: auto;
+    }
+    .editor-overlay.open { display: flex; }
+    .editor-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      max-width: 800px;
+      width: 100%;
+      margin-top: 2rem;
+      margin-bottom: 2rem;
+      animation: slideUp 0.3s ease;
+    }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .editor-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .editor-header h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+    .editor-close {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-muted);
+      width: 32px; height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .editor-close:hover {
+      color: var(--text);
+      border-color: var(--border-hover);
+    }
+    .editor-body {
+      padding: 1.5rem;
+    }
+    .editor-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
+      padding: 1.25rem 1.5rem;
+      border-top: 1px solid var(--border);
+    }
+
+    /* ─── Form fields ─── */
+    .form-group {
+      margin-bottom: 1.25rem;
+    }
+    .form-group label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 0.4rem;
+    }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 0.65rem 0.9rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.9rem;
+      transition: border-color 0.2s;
+      outline: none;
+    }
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-dim);
+    }
+    .form-group textarea {
+      min-height: 120px;
+      resize: vertical;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      line-height: 1.6;
+    }
+    .form-group textarea.body-editor {
+      min-height: 300px;
+    }
+    .form-group select {
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2371717a' viewBox='0 0 24 24'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.75rem center;
+      padding-right: 2rem;
+    }
+    .form-group select option {
+      background: var(--surface);
+      color: var(--text);
+    }
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+    .form-hint {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      margin-top: 0.3rem;
+    }
+
+    /* ─── Preview toggle ─── */
+    .editor-tabs {
+      display: flex;
+      gap: 0;
+      margin-bottom: 1rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      width: fit-content;
+    }
+    .editor-tab {
+      padding: 0.4rem 1rem;
+      font-size: 0.8rem;
+      font-family: 'Inter', sans-serif;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .editor-tab.active {
+      background: var(--accent-dim);
+      color: var(--accent);
+    }
+    .editor-tab:not(.active):hover {
+      background: var(--surface-2);
+      color: var(--text);
+    }
+    .preview-pane {
+      display: none;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 1.5rem;
+      min-height: 300px;
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+      line-height: 1.8;
+    }
+    .preview-pane.visible { display: block; }
+    .preview-pane h3 { color: var(--text); font-size: 1.15rem; margin: 1.5rem 0 0.5rem; }
+    .preview-pane h3:first-child { margin-top: 0; }
+    .preview-pane p { margin-bottom: 0.75rem; }
+    .preview-pane pre {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 1rem;
+      overflow-x: auto;
+      margin: 0.75rem 0;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      line-height: 1.7;
+    }
+    .preview-pane code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85em;
+      background: var(--surface-2);
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+    }
+    .preview-pane pre code { background: none; padding: 0; }
+    .preview-pane ul, .preview-pane ol { margin: 0.75rem 0; padding-left: 1.5rem; }
+    .preview-pane li { margin-bottom: 0.35rem; }
+
+    /* ─── Delete confirm ─── */
+    .confirm-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(4px);
+      z-index: 3000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    .confirm-overlay.open { display: flex; }
+    .confirm-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 2rem;
+      max-width: 400px;
+      width: 100%;
+      text-align: center;
+      animation: slideUp 0.2s ease;
+    }
+    .confirm-box h4 {
+      font-size: 1.1rem;
+      margin-bottom: 0.5rem;
+    }
+    .confirm-box p {
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      margin-bottom: 1.5rem;
+    }
+    .confirm-actions {
+      display: flex;
+      gap: 0.75rem;
+      justify-content: center;
+    }
+
+    /* ─── Responsive ─── */
+    @media (max-width: 768px) {
+      .admin-container { padding: 1rem; }
+      .posts-table-header { display: none; }
+      .post-row {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+        padding: 1rem;
+      }
+      .post-row .post-id { display: none; }
+      .form-row { grid-template-columns: 1fr; }
+      .admin-header { flex-direction: column; gap: 1rem; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Toast container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <div class="admin-container">
+    <!-- Header -->
+    <div class="admin-header">
+      <h1>
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        Blog Admin
+        <span>SpaceTimeDB</span>
+      </h1>
+      <div class="admin-nav">
+        <a href="index.html">Back to Site</a>
+      </div>
+    </div>
+
+    <!-- Status bar -->
+    <div class="status-bar">
+      <div class="status-dot" id="status-dot"></div>
+      <span class="status-text" id="status-text">Connecting to SpaceTimeDB...</span>
+      <span class="status-count" id="status-count">0 posts</span>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <h2>Blog Posts</h2>
+      <button class="btn btn-primary" onclick="openEditor()">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+        New Post
+      </button>
+    </div>
+
+    <!-- Posts table -->
+    <div class="posts-table" id="posts-table">
+      <div class="posts-table-header">
+        <div>ID</div>
+        <div>Title</div>
+        <div>Category</div>
+        <div>Date</div>
+        <div>Actions</div>
+      </div>
+      <div id="posts-list">
+        <div class="empty-state">Connecting to database...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Editor modal -->
+  <div class="editor-overlay" id="editor-overlay">
+    <div class="editor-panel">
+      <div class="editor-header">
+        <h3 id="editor-title">New Blog Post</h3>
+        <button class="editor-close" onclick="closeEditor()">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="editor-body">
+        <input type="hidden" id="edit-id">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Title</label>
+            <input type="text" id="edit-title" placeholder="e.g. Building a CLI in Rust">
+          </div>
+          <div class="form-group">
+            <label>Date</label>
+            <input type="text" id="edit-date" placeholder="e.g. Mar 10, 2026">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Category</label>
+            <select id="edit-category">
+              <option value="mini-project">Mini Project</option>
+              <option value="tutorial">Tutorial</option>
+              <option value="deep-dive">Deep Dive</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>&nbsp;</label>
+            <div style="padding-top: 0.3rem; font-size: 0.75rem; color: var(--text-muted);">
+              Category determines the tag color on the blog card
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Summary</label>
+          <textarea id="edit-summary" rows="2" placeholder="A short description shown on the blog card..." style="min-height: 70px;"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Body (HTML)</label>
+          <div class="editor-tabs">
+            <button class="editor-tab active" onclick="switchTab('write')">Write</button>
+            <button class="editor-tab" onclick="switchTab('preview')">Preview</button>
+          </div>
+          <textarea id="edit-body" class="body-editor" placeholder="<h3>Section Title</h3>
+<p>Your content here...</p>
+
+<pre><code>// code blocks
+const x = 42;</code></pre>
+
+<ul>
+  <li>Bullet points</li>
+</ul>"></textarea>
+          <div class="preview-pane" id="body-preview"></div>
+          <div class="form-hint">Write HTML directly. Use &lt;h3&gt;, &lt;p&gt;, &lt;pre&gt;&lt;code&gt;, &lt;ul&gt;/&lt;li&gt; tags.</div>
+        </div>
+      </div>
+      <div class="editor-footer">
+        <button class="btn btn-secondary" onclick="closeEditor()">Cancel</button>
+        <button class="btn btn-primary" id="editor-save-btn" onclick="savePost()">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
+          Publish
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete confirmation -->
+  <div class="confirm-overlay" id="confirm-overlay">
+    <div class="confirm-box">
+      <h4>Delete this post?</h4>
+      <p id="confirm-text">This action cannot be undone.</p>
+      <div class="confirm-actions">
+        <button class="btn btn-secondary" onclick="closeConfirm()">Cancel</button>
+        <button class="btn btn-danger" id="confirm-delete-btn" onclick="confirmDelete()">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SpaceTimeDB Client -->
+  <script src="dist/stdb-client.js"></script>
+
+  <script>
+    // ─── State ───
+    let posts = [];
+    let editingId = null;
+    let deletingId = null;
+    let isConnected = false;
+
+    // ─── Connect to SpaceTimeDB ───
+    if (typeof StdbClient !== 'undefined' && StdbClient.connect) {
+      try {
+        StdbClient.connect(function(receivedPosts) {
+          isConnected = true;
+          posts = receivedPosts;
+          document.getElementById('status-dot').classList.add('connected');
+          document.getElementById('status-text').textContent = 'Connected to SpaceTimeDB';
+          document.getElementById('status-count').textContent = posts.length + ' post' + (posts.length !== 1 ? 's' : '');
+          renderPosts();
+        });
+      } catch (e) {
+        document.getElementById('status-text').textContent = 'Connection failed';
+        console.error('[Admin] SpaceTimeDB connection error:', e);
+      }
+    } else {
+      document.getElementById('status-text').textContent = 'SpaceTimeDB client not loaded';
+    }
+
+    // ─── Render posts table ───
+    function renderPosts() {
+      const list = document.getElementById('posts-list');
+      if (posts.length === 0) {
+        list.innerHTML = '<div class="empty-state">No blog posts yet. Click "New Post" to create one.</div>';
+        return;
+      }
+
+      // Sort by id descending (newest first)
+      const sorted = [...posts].sort((a, b) => {
+        const aId = typeof a.id === 'bigint' ? Number(a.id) : a.id;
+        const bId = typeof b.id === 'bigint' ? Number(b.id) : b.id;
+        return bId - aId;
+      });
+
+      list.innerHTML = sorted.map(post => {
+        const postId = typeof post.id === 'bigint' ? post.id.toString() : post.id;
+        return `
+          <div class="post-row">
+            <div class="post-id">#${postId}</div>
+            <div class="post-title">
+              ${escapeHtml(post.title)}
+              <small>${escapeHtml(post.summary)}</small>
+            </div>
+            <div>
+              <span class="post-category ${post.category}">${post.category.replace('-', ' ')}</span>
+            </div>
+            <div class="post-date">${escapeHtml(post.date)}</div>
+            <div class="post-actions">
+              <button class="btn btn-secondary btn-sm" onclick="editPost('${postId}')">
+                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                Edit
+              </button>
+              <button class="btn btn-danger btn-sm" onclick="openDeleteConfirm('${postId}', '${escapeHtml(post.title).replace(/'/g, "\\'")}')">
+                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+                Delete
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      document.getElementById('status-count').textContent = posts.length + ' post' + (posts.length !== 1 ? 's' : '');
+    }
+
+    // ─── Editor ───
+    function openEditor(post) {
+      editingId = post ? post.id : null;
+      document.getElementById('editor-title').textContent = post ? 'Edit Post' : 'New Blog Post';
+      document.getElementById('editor-save-btn').innerHTML = post
+        ? '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg> Update'
+        : '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg> Publish';
+
+      document.getElementById('edit-title').value = post ? post.title : '';
+      document.getElementById('edit-date').value = post ? post.date : getDefaultDate();
+      document.getElementById('edit-category').value = post ? post.category : 'mini-project';
+      document.getElementById('edit-summary').value = post ? post.summary : '';
+      document.getElementById('edit-body').value = post ? post.body : '';
+
+      // Reset to write tab
+      switchTab('write');
+
+      document.getElementById('editor-overlay').classList.add('open');
+      document.body.style.overflow = 'hidden';
+      setTimeout(() => document.getElementById('edit-title').focus(), 100);
+    }
+
+    function closeEditor() {
+      document.getElementById('editor-overlay').classList.remove('open');
+      document.body.style.overflow = '';
+      editingId = null;
+    }
+
+    function editPost(id) {
+      const post = posts.find(p => {
+        const pId = typeof p.id === 'bigint' ? p.id.toString() : String(p.id);
+        return pId === String(id);
+      });
+      if (post) openEditor(post);
+    }
+
+    function savePost() {
+      const title = document.getElementById('edit-title').value.trim();
+      const date = document.getElementById('edit-date').value.trim();
+      const category = document.getElementById('edit-category').value;
+      const summary = document.getElementById('edit-summary').value.trim();
+      const body = document.getElementById('edit-body').value.trim();
+
+      if (!title) { showToast('Title is required', 'error'); return; }
+      if (!summary) { showToast('Summary is required', 'error'); return; }
+      if (!body) { showToast('Body is required', 'error'); return; }
+
+      if (editingId !== null) {
+        const id = typeof editingId === 'bigint' ? editingId : BigInt(editingId);
+        StdbClient.updatePost(id, title, category, date, summary, body);
+        showToast('Post updated successfully', 'success');
+      } else {
+        StdbClient.addPost(title, category, date, summary, body);
+        showToast('Post published successfully', 'success');
+      }
+
+      closeEditor();
+    }
+
+    // ─── Delete ───
+    function openDeleteConfirm(id, title) {
+      deletingId = id;
+      document.getElementById('confirm-text').textContent = `"${title}" will be permanently deleted.`;
+      document.getElementById('confirm-overlay').classList.add('open');
+    }
+
+    function closeConfirm() {
+      document.getElementById('confirm-overlay').classList.remove('open');
+      deletingId = null;
+    }
+
+    function confirmDelete() {
+      if (deletingId !== null) {
+        const id = typeof deletingId === 'bigint' ? deletingId : BigInt(deletingId);
+        StdbClient.deletePost(id);
+        showToast('Post deleted', 'success');
+      }
+      closeConfirm();
+    }
+
+    // ─── Preview toggle ───
+    function switchTab(tab) {
+      document.querySelectorAll('.editor-tab').forEach(t => t.classList.remove('active'));
+      if (tab === 'write') {
+        document.querySelectorAll('.editor-tab')[0].classList.add('active');
+        document.getElementById('edit-body').style.display = 'block';
+        document.getElementById('body-preview').classList.remove('visible');
+      } else {
+        document.querySelectorAll('.editor-tab')[1].classList.add('active');
+        document.getElementById('edit-body').style.display = 'none';
+        const preview = document.getElementById('body-preview');
+        preview.innerHTML = document.getElementById('edit-body').value || '<p style="color:var(--text-muted)">Nothing to preview yet...</p>';
+        preview.classList.add('visible');
+      }
+    }
+
+    // ─── Toast ───
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.textContent = message;
+      container.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+
+    // ─── Helpers ───
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    function getDefaultDate() {
+      const now = new Date();
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      return `${months[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()}`;
+    }
+
+    // ─── Keyboard shortcuts ───
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        if (document.getElementById('confirm-overlay').classList.contains('open')) {
+          closeConfirm();
+        } else if (document.getElementById('editor-overlay').classList.contains('open')) {
+          closeEditor();
+        }
+      }
+    });
+  </script>
+
+</body>
+</html>

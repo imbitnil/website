@@ -1,0 +1,2329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>qbit-glitch | Computer Vision Engineer</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap');
+
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #09090b;
+      --surface: #111113;
+      --surface-2: #18181b;
+      --border: #27272a;
+      --border-hover: #3f3f46;
+      --text: #fafafa;
+      --text-secondary: #a1a1aa;
+      --text-muted: #71717a;
+      --accent: #818cf8;
+      --accent-dim: rgba(129, 140, 248, 0.1);
+      --accent-glow: rgba(129, 140, 248, 0.15);
+      --green: #34d399;
+      --green-dim: rgba(52, 211, 153, 0.1);
+      --radius: 12px;
+      --radius-sm: 8px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      overflow-x: hidden;
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    ::selection {
+      background: var(--accent);
+      color: var(--bg);
+    }
+
+    /* ─── Noise overlay ─── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    /* ─── Animated gradient orbs ─── */
+    .bg-orbs {
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+      z-index: -1;
+    }
+    .bg-orbs .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(120px);
+      opacity: 0.08;
+      animation: float 20s ease-in-out infinite;
+    }
+    .bg-orbs .orb:nth-child(1) {
+      width: 600px; height: 600px;
+      background: var(--accent);
+      top: -10%; left: -5%;
+      animation-delay: 0s;
+    }
+    .bg-orbs .orb:nth-child(2) {
+      width: 500px; height: 500px;
+      background: #a78bfa;
+      top: 50%; right: -10%;
+      animation-delay: -7s;
+      animation-duration: 25s;
+    }
+    .bg-orbs .orb:nth-child(3) {
+      width: 400px; height: 400px;
+      background: var(--green);
+      bottom: -5%; left: 30%;
+      animation-delay: -14s;
+      animation-duration: 22s;
+    }
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(30px, -40px) scale(1.05); }
+      66% { transform: translate(-20px, 30px) scale(0.95); }
+    }
+
+    /* ─── Grid pattern ─── */
+    .grid-pattern {
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 60px 60px;
+      opacity: 0.04;
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    /* ─── Navigation ─── */
+    nav {
+      position: fixed;
+      top: 0;
+      width: 100%;
+      z-index: 1000;
+      padding: 0 2rem;
+      transition: all 0.3s ease;
+    }
+    nav.scrolled {
+      background: rgba(9, 9, 11, 0.8);
+      backdrop-filter: blur(20px) saturate(1.2);
+      border-bottom: 1px solid var(--border);
+    }
+    nav .nav-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem 0;
+    }
+    nav .logo-group {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    nav .hero-badge {
+      margin-bottom: 0;
+    }
+    nav .logo {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 500;
+      font-size: 1rem;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    nav .logo .cursor {
+      display: inline-block;
+      width: 2px;
+      height: 1.1em;
+      background: var(--accent);
+      animation: blink 1s step-end infinite;
+      vertical-align: text-bottom;
+    }
+    @keyframes blink {
+      50% { opacity: 0; }
+    }
+    nav ul {
+      list-style: none;
+      display: flex;
+      gap: 0.5rem;
+    }
+    nav ul a {
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      font-weight: 400;
+      padding: 0.5rem 1rem;
+      border-radius: var(--radius-sm);
+      transition: all 0.2s;
+    }
+    nav ul a:hover {
+      color: var(--text);
+      background: var(--surface);
+    }
+    nav ul a.active {
+      color: var(--text);
+      background: var(--surface-2);
+    }
+
+    /* ─── Sections ─── */
+    section {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 6rem 2rem;
+    }
+
+    .section-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .section-label::before {
+      content: '';
+      width: 24px;
+      height: 1px;
+      background: var(--accent);
+    }
+
+    h2 {
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 1rem;
+    }
+
+    .section-desc {
+      color: var(--text-secondary);
+      font-size: 1.05rem;
+      max-width: 540px;
+      margin-bottom: 3rem;
+    }
+
+    /* ─── Image Graph Canvas ─── */
+    #image-graph-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* ─── Hero ─── */
+    #hero {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding-top: 0;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.4rem 1rem;
+      background: var(--green-dim);
+      border: 1px solid rgba(52, 211, 153, 0.2);
+      border-radius: 100px;
+      font-size: 0.8rem;
+      color: var(--green);
+      margin-bottom: 2rem;
+      width: fit-content;
+    }
+    .hero-badge .dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.8); }
+    }
+    #hero h1 {
+      font-size: clamp(2.5rem, 6vw, 4.5rem);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      margin-bottom: 1.5rem;
+    }
+    #hero h1 .gradient {
+      background: linear-gradient(135deg, var(--accent) 0%, #a78bfa 50%, var(--green) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    #hero p {
+      font-size: 1.15rem;
+      color: var(--text-secondary);
+      max-width: 520px;
+      margin-bottom: 2.5rem;
+    }
+    .hero-actions {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1.5rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: all 0.2s;
+      cursor: pointer;
+      border: none;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: var(--bg);
+    }
+    .btn-primary:hover {
+      background: #6366f1;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 20px var(--accent-glow);
+    }
+    .btn-secondary {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    .btn-secondary:hover {
+      border-color: var(--border-hover);
+      background: var(--surface);
+      transform: translateY(-1px);
+    }
+
+    /* Hero terminal preview */
+    .hero-terminal {
+      margin-top: 4rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      max-width: 600px;
+    }
+    .terminal-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1rem;
+      background: var(--surface-2);
+      border-bottom: 1px solid var(--border);
+    }
+    .terminal-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+    }
+    .terminal-dot:nth-child(1) { background: #ef4444; }
+    .terminal-dot:nth-child(2) { background: #eab308; }
+    .terminal-dot:nth-child(3) { background: #22c55e; }
+    .terminal-header span {
+      flex: 1;
+      text-align: center;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      margin-right: 2rem;
+    }
+    .terminal-body {
+      padding: 1.25rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      line-height: 1.8;
+    }
+    .terminal-body .prompt { color: var(--green); }
+    .terminal-body .cmd { color: var(--text); }
+    .terminal-body .output { color: var(--text-muted); }
+    .terminal-body .highlight { color: var(--accent); }
+
+    /* ─── Projects ─── */
+    .project-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 1.25rem;
+      overflow: visible;
+      padding-top: 14px;
+    }
+    .project-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.75rem;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: visible;
+      display: flex;
+      flex-direction: column;
+    }
+    .project-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: var(--radius);
+      background: linear-gradient(135deg, var(--accent-dim), transparent 60%);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .project-card:hover::before { opacity: 1; }
+    .project-card:hover {
+      border-color: var(--border-hover);
+      transform: translateY(-4px);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+    }
+    .project-card > * { position: relative; z-index: 1; }
+    .project-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 1rem;
+    }
+    .project-icon {
+      width: 40px; height: 40px;
+      border-radius: var(--radius-sm);
+      background: var(--accent-dim);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+    }
+    .project-links {
+      display: flex;
+      gap: 0.75rem;
+    }
+    .project-links a {
+      color: var(--text-muted);
+      transition: color 0.2s;
+    }
+    .project-links a:hover { color: var(--text); }
+    .project-card h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+    .project-card p {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      flex: 1;
+    }
+    .tags {
+      margin-top: 1.25rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+    .tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      padding: 0.3rem 0.65rem;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text-muted);
+    }
+
+    /* Featured project */
+    .featured-project {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 2rem;
+      margin-bottom: 2rem;
+      transition: all 0.3s;
+    }
+    .featured-project:hover {
+      border-color: var(--border-hover);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+    }
+    .featured-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      background: var(--accent-dim);
+      padding: 0.25rem 0.6rem;
+      border-radius: 4px;
+      width: fit-content;
+      margin-bottom: 1rem;
+    }
+    .featured-project h3 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 0.75rem;
+    }
+    .featured-project p {
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+      margin-bottom: 1rem;
+    }
+    .featured-preview {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 1.5rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      line-height: 1.8;
+      color: var(--text-muted);
+      overflow: hidden;
+    }
+    .featured-preview .keyword { color: #c084fc; }
+    .featured-preview .func { color: #60a5fa; }
+    .featured-preview .string { color: var(--green); }
+    .featured-preview .comment { color: var(--text-muted); opacity: 0.6; }
+
+    /* ─── About / Experience ─── */
+    .about-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 3rem;
+    }
+    .about-text p {
+      color: var(--text-secondary);
+      margin-bottom: 1rem;
+      font-size: 0.95rem;
+    }
+
+    .tech-stack {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+    .tech-category h4 {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-bottom: 0.75rem;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .tech-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+    .tech-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+    }
+    .tech-item::before {
+      content: '>';
+      color: var(--accent);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+    }
+
+    /* Experience timeline */
+    .experience {
+      margin-top: 4rem;
+    }
+    .timeline {
+      position: relative;
+      padding-left: 2rem;
+    }
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 8px;
+      bottom: 8px;
+      width: 1px;
+      background: var(--border);
+    }
+    .timeline-item {
+      position: relative;
+      margin-bottom: 2.5rem;
+    }
+    .timeline-item:last-child { margin-bottom: 0; }
+    .timeline-item::before {
+      content: '';
+      position: absolute;
+      left: -2rem;
+      top: 8px;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--surface);
+      border: 2px solid var(--accent);
+      transform: translateX(-3.5px);
+    }
+    .timeline-item .date {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      margin-bottom: 0.25rem;
+    }
+    .timeline-item h4 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 0.15rem;
+    }
+    .timeline-item .company {
+      color: var(--accent);
+      font-size: 0.875rem;
+      margin-bottom: 0.5rem;
+    }
+    .timeline-item p {
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+    }
+
+    /* ─── Publications ─── */
+    .pub-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+    .pub-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.75rem;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+    .pub-card:hover {
+      border-color: var(--border-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+    }
+    .pub-venue {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 0.2rem 0.6rem;
+      border-radius: 4px;
+      background: rgba(244, 114, 182, 0.1);
+      color: #f472b6;
+      display: inline-block;
+      margin-bottom: 0.75rem;
+    }
+    .pub-card h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      margin-bottom: 0.4rem;
+      line-height: 1.4;
+    }
+    .pub-authors {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+    .pub-authors strong {
+      color: var(--text-secondary);
+    }
+    .pub-card > p {
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+      margin-bottom: 1rem;
+    }
+    .pub-links {
+      display: flex;
+      gap: 0.75rem;
+    }
+    .pub-link {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      padding: 0.3rem 0.65rem;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--accent);
+      transition: all 0.2s;
+      text-decoration: none;
+    }
+    .pub-link:hover {
+      border-color: var(--accent);
+      background: var(--accent-dim);
+    }
+
+    /* ─── Blog ─── */
+    .blog-filters {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+    }
+    .blog-filter {
+      padding: 0.4rem 1rem;
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .blog-filter:hover {
+      border-color: var(--border-hover);
+      color: var(--text);
+    }
+    .blog-filter.active {
+      background: var(--accent-dim);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .blog-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.25rem;
+    }
+    .blog-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.75rem;
+      transition: all 0.3s ease;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+    }
+    .blog-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent), #a78bfa, var(--green));
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .blog-card:hover::before { opacity: 1; }
+    .blog-card:hover {
+      border-color: var(--border-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+    }
+    .blog-meta {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 0.75rem;
+      flex-wrap: wrap;
+    }
+    .blog-date {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+    }
+    .blog-category {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 0.2rem 0.6rem;
+      border-radius: 4px;
+      background: var(--accent-dim);
+      color: var(--accent);
+    }
+    .blog-category.mini-project {
+      background: var(--green-dim);
+      color: var(--green);
+    }
+    .blog-category.tutorial {
+      background: rgba(251, 191, 36, 0.1);
+      color: #fbbf24;
+    }
+    .blog-category.deep-dive {
+      background: rgba(244, 114, 182, 0.1);
+      color: #f472b6;
+    }
+    .blog-card h3 {
+      font-size: 1.15rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+    .blog-card > p {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      margin-bottom: 1rem;
+    }
+    .blog-card .read-more {
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--accent);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      transition: gap 0.2s;
+    }
+    .blog-card:hover .read-more { gap: 0.6rem; }
+
+    /* Blog expanded post */
+    .blog-post-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(8px);
+      z-index: 2000;
+      display: none;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 2rem;
+      overflow-y: auto;
+    }
+    .blog-post-overlay.open { display: flex; }
+    .blog-post-content {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      max-width: 740px;
+      width: 100%;
+      padding: 3rem;
+      margin-top: 2rem;
+      margin-bottom: 2rem;
+      position: relative;
+      animation: slideUp 0.3s ease;
+    }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .blog-post-close {
+      position: absolute;
+      top: 1.25rem;
+      right: 1.25rem;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-muted);
+      width: 36px; height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .blog-post-close:hover {
+      color: var(--text);
+      border-color: var(--border-hover);
+    }
+    .blog-post-content h2 {
+      font-size: 1.75rem;
+      margin-bottom: 0.5rem;
+      padding-right: 2.5rem;
+    }
+    .blog-post-content .blog-meta { margin-bottom: 2rem; }
+    .blog-post-body { color: var(--text-secondary); font-size: 0.95rem; line-height: 1.8; }
+    .blog-post-body p { margin-bottom: 1rem; }
+    .blog-post-body h3 {
+      color: var(--text);
+      font-size: 1.15rem;
+      margin: 2rem 0 0.75rem;
+    }
+    .blog-post-body pre {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 1.25rem;
+      overflow-x: auto;
+      margin: 1rem 0;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      line-height: 1.7;
+    }
+    .blog-post-body code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85em;
+      background: var(--surface-2);
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+    }
+    .blog-post-body pre code {
+      background: none;
+      padding: 0;
+    }
+    .blog-post-body ul, .blog-post-body ol {
+      margin: 1rem 0;
+      padding-left: 1.5rem;
+    }
+    .blog-post-body li { margin-bottom: 0.5rem; }
+
+    /* ─── Contact ─── */
+    #contact {
+      text-align: center;
+    }
+    #contact .section-label {
+      justify-content: center;
+    }
+    #contact .section-label::before { display: none; }
+    #contact h2 {
+      font-size: 2.5rem;
+    }
+    #contact .section-desc {
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .contact-grid {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .contact-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      transition: all 0.2s;
+      min-width: 180px;
+      justify-content: center;
+    }
+    .contact-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 20px var(--accent-glow);
+    }
+    .contact-card svg {
+      width: 18px; height: 18px;
+      color: var(--text-muted);
+      transition: color 0.2s;
+    }
+    .contact-card:hover svg { color: var(--accent); }
+    .contact-card span {
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    /* ─── Footer ─── */
+    footer {
+      text-align: center;
+      padding: 3rem 2rem;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      border-top: 1px solid var(--border);
+    }
+    footer .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 2rem;
+      margin-bottom: 1.5rem;
+    }
+    footer a {
+      color: var(--text-muted);
+      transition: color 0.2s;
+    }
+    footer a:hover { color: var(--text); }
+
+    /* ─── Scroll reveal animation ─── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ─── Mobile nav toggle ─── */
+    .nav-toggle {
+      display: none;
+      background: none;
+      border: none;
+      color: var(--text);
+      cursor: pointer;
+      padding: 0.5rem;
+    }
+    .nav-toggle svg {
+      width: 24px; height: 24px;
+    }
+
+    /* ─── Responsive ─── */
+    @media (max-width: 768px) {
+      section { padding: 4rem 1.25rem; }
+      #hero h1 { font-size: 2.2rem; }
+      .project-grid { grid-template-columns: 1fr; }
+      .featured-project { grid-template-columns: 1fr; }
+      .about-grid { grid-template-columns: 1fr; }
+      .hero-terminal { margin-top: 2rem; }
+      nav ul {
+        display: none;
+        position: absolute;
+        top: 64px;
+        left: 0;
+        right: 0;
+        background: rgba(9, 9, 11, 0.95);
+        backdrop-filter: blur(20px);
+        border-bottom: 1px solid var(--border);
+        flex-direction: column;
+        padding: 1rem;
+        gap: 0;
+      }
+      nav ul.open { display: flex; }
+      nav ul a {
+        display: block;
+        padding: 0.75rem 1rem;
+      }
+      .nav-toggle { display: block; }
+    }
+  </style>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Background effects -->
+  <div class="bg-orbs">
+    <div class="orb"></div>
+    <div class="orb"></div>
+    <div class="orb"></div>
+  </div>
+  <div class="grid-pattern"></div>
+
+  <!-- Navigation -->
+  <nav id="navbar">
+    <div class="nav-inner">
+      <div class="logo-group">
+        <a href="#hero" class="logo">
+          bittu-boss<span class="cursor"></span>
+        </a>
+        <div class="hero-badge">
+          <div class="dot"></div>
+          Available for work
+        </div>
+      </div>
+      <button class="nav-toggle" onclick="document.querySelector('nav ul').classList.toggle('open')" aria-label="Toggle menu">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+      <ul>
+        <li><a href="#projects">Projects</a></li>
+        <li><a href="#publications">Publications</a></li>
+        <li><a href="#blog">Blog</a></li>
+        <li><a href="#about">About</a></li>
+        <li><a href="#contact">Contact</a></li>
+        <li><a href="https://github.com/qbit-glitch" class="btn btn-secondary" style="padding: 0.4rem 1rem; margin-left: 0.5rem; font-size: 0.8rem;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: -3px; margin-right: 4px;"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+          GitHub
+        </a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section id="hero">
+    <canvas id="image-graph-canvas" data-parallax="0.4"></canvas>
+    <div class="reveal" style="position: relative; z-index: 1;" data-parallax="0.85">
+      <h1>
+        I'm studying IIT Madras<br>
+        BS <span class="gradient">Data Science</span>.
+      </h1>
+      <p>
+        Computer vision engineer building perception systems that understand the visual world. From real-time object detection to 3D reconstruction, I design and deploy models that turn pixels into actionable intelligence.
+      </p>
+      <div class="hero-actions">
+        <a href="#projects" class="btn btn-primary">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+          View My Work
+        </a>
+        <a href="#contact" class="btn btn-secondary">Get in Touch</a>
+      </div>
+    </div>
+
+    <div class="hero-terminal reveal" style="transition-delay: 0.2s; position: relative; z-index: 1;" data-parallax="1.15">
+      <div class="terminal-header">
+        <div class="terminal-dot"></div>
+        <div class="terminal-dot"></div>
+        <div class="terminal-dot"></div>
+        <span>~/portfolio</span>
+      </div>
+      <div class="terminal-body">
+        <div><span class="prompt">$</span> <span class="cmd">whoami</span></div>
+        <div class="output">qbit-glitch</div>
+        <br>
+        <div><span class="prompt">$</span> <span class="cmd">cat skills.json</span></div>
+        <div class="output">{</div>
+        <div class="output">&nbsp;&nbsp;<span class="highlight">"vision"</span>: &nbsp; &nbsp;["Object Detection", "Segmentation", "3D Reconstruction"],</div>
+        <div class="output">&nbsp;&nbsp;<span class="highlight">"frameworks"</span>: ["PyTorch", "OpenCV", "TensorRT"],</div>
+        <div class="output">&nbsp;&nbsp;<span class="highlight">"languages"</span>: ["Python", "C++", "CUDA"],</div>
+        <div class="output">&nbsp;&nbsp;<span class="highlight">"deploy"</span>: &nbsp; &nbsp;["ONNX", "Docker", "Edge/Jetson"]</div>
+        <div class="output">}</div>
+        <br>
+        <div><span class="prompt">$</span> <span class="cmd" id="typed-cmd"></span><span class="cursor" style="font-size:inherit;"></span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Projects -->
+  <section id="projects">
+    <div class="reveal">
+      <div class="section-label">Projects</div>
+      <h2>Featured Work</h2>
+      <p class="section-desc">Research prototypes and production systems spanning detection, segmentation, 3D vision, and edge deployment.</p>
+    </div>
+
+    <!-- Featured Project -->
+    <a href="#" class="featured-project reveal">
+      <div>
+        <div class="featured-badge">Featured Project</div>
+        <h3>NeuroSight</h3>
+        <p>A real-time multi-object tracking and segmentation pipeline for autonomous driving. Fuses LiDAR point clouds with camera frames using a custom transformer-based architecture, running at 30 FPS on NVIDIA Orin.</p>
+        <div class="tags">
+          <span class="tag">PyTorch</span>
+          <span class="tag">CUDA</span>
+          <span class="tag">TensorRT</span>
+          <span class="tag">ROS2</span>
+          <span class="tag">C++</span>
+        </div>
+      </div>
+      <div class="featured-preview">
+        <div><span class="comment"># Multi-modal perception pipeline</span></div>
+        <div><span class="keyword">import</span> <span class="func">torch</span></div>
+        <div><span class="keyword">from</span> neurosight <span class="keyword">import</span> <span class="func">FusionNet</span></div>
+        <br>
+        <div>model = <span class="func">FusionNet</span>(</div>
+        <div>&nbsp;&nbsp;backbone=<span class="string">"swin_v2_large"</span>,</div>
+        <div>&nbsp;&nbsp;lidar_encoder=<span class="string">"pointpillars"</span>,</div>
+        <div>&nbsp;&nbsp;num_classes=<span class="string">12</span>,</div>
+        <div>)</div>
+        <br>
+        <div>detections = model.<span class="func">predict</span>(</div>
+        <div>&nbsp;&nbsp;rgb=camera_frame,</div>
+        <div>&nbsp;&nbsp;points=lidar_scan,</div>
+        <div>)</div>
+      </div>
+    </a>
+
+    <!-- Project Grid -->
+    <div class="project-grid">
+      <a class="project-card reveal" href="#">
+        <div class="project-header">
+          <div class="project-icon">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </div>
+          <div class="project-links">
+            <span title="GitHub"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg></span>
+            <span title="Live Demo"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg></span>
+          </div>
+        </div>
+        <h3>DepthForge</h3>
+        <p>Monocular depth estimation model achieving state-of-the-art results on NYU Depth v2. Uses a hybrid CNN-Transformer architecture with self-supervised pretraining on unlabeled video.</p>
+        <div class="tags">
+          <span class="tag">PyTorch</span>
+          <span class="tag">Depth Estimation</span>
+          <span class="tag">Transformers</span>
+        </div>
+      </a>
+
+      <a class="project-card reveal" href="#">
+        <div class="project-header">
+          <div class="project-icon">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 3v18"/></svg>
+          </div>
+          <div class="project-links">
+            <span title="GitHub"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg></span>
+            <span title="Live Demo"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg></span>
+          </div>
+        </div>
+        <h3>SegAnything-Edge</h3>
+        <p>Distilled and quantized version of SAM optimized for edge deployment. Runs interactive segmentation at 15 FPS on Jetson Nano with INT8 TensorRT inference.</p>
+        <div class="tags">
+          <span class="tag">ONNX</span>
+          <span class="tag">TensorRT</span>
+          <span class="tag">Jetson</span>
+        </div>
+      </a>
+
+      <a class="project-card reveal" href="#">
+        <div class="project-header">
+          <div class="project-icon">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><path d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12"/></svg>
+          </div>
+          <div class="project-links">
+            <span title="GitHub"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg></span>
+            <span title="Live Demo"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg></span>
+          </div>
+        </div>
+        <h3>NeuralRecon3D</h3>
+        <p>Real-time 3D scene reconstruction from posed RGB images using neural implicit surfaces. Generates textured meshes from sparse views with NeRF-inspired volume rendering.</p>
+        <div class="tags">
+          <span class="tag">Python</span>
+          <span class="tag">NeRF</span>
+          <span class="tag">Open3D</span>
+        </div>
+      </a>
+
+      <a class="project-card reveal" href="#">
+        <div class="project-header">
+          <div class="project-icon">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>
+          </div>
+          <div class="project-links">
+            <span title="GitHub"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg></span>
+            <span title="Live Demo"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg></span>
+          </div>
+        </div>
+        <h3>AugmentKit</h3>
+        <p>A high-performance data augmentation library for CV pipelines. GPU-accelerated transforms, mosaic augmentation, and domain-specific presets for medical, satellite, and autonomous driving data.</p>
+        <div class="tags">
+          <span class="tag">Python</span>
+          <span class="tag">CUDA</span>
+          <span class="tag">Albumentations</span>
+        </div>
+      </a>
+    </div>
+  </section>
+
+  <!-- CV Pipeline Divider: Projects → About -->
+  <div class="pipeline-divider" aria-hidden="true">
+    <svg viewBox="0 0 800 70" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+      <line x1="0" y1="35" x2="800" y2="35" stroke="var(--border)" stroke-width="1" class="pipeline-line"/>
+      <g class="pipeline-node" transform="translate(100,35)">
+        <rect x="-38" y="-14" width="76" height="28" rx="5" fill="var(--surface)" stroke="var(--accent)" stroke-width="1.2"/>
+        <text x="0" y="5" text-anchor="middle" fill="var(--accent)" font-family="JetBrains Mono" font-size="11">INPUT</text>
+      </g>
+      <g class="pipeline-node" transform="translate(300,35)">
+        <rect x="-52" y="-14" width="104" height="28" rx="5" fill="var(--surface)" stroke="var(--green)" stroke-width="1.2"/>
+        <text x="0" y="5" text-anchor="middle" fill="var(--green)" font-family="JetBrains Mono" font-size="11">BACKBONE</text>
+      </g>
+      <g class="pipeline-node" transform="translate(500,35)">
+        <rect x="-30" y="-14" width="60" height="28" rx="5" fill="var(--surface)" stroke="var(--accent)" stroke-width="1.2"/>
+        <text x="0" y="5" text-anchor="middle" fill="var(--accent)" font-family="JetBrains Mono" font-size="11">FPN</text>
+      </g>
+      <g class="pipeline-node" transform="translate(700,35)">
+        <rect x="-42" y="-14" width="84" height="28" rx="5" fill="var(--surface)" stroke="var(--green)" stroke-width="1.2"/>
+        <text x="0" y="5" text-anchor="middle" fill="var(--green)" font-family="JetBrains Mono" font-size="11">DETECT</text>
+      </g>
+      <polygon points="155,35 168,28 168,42" fill="var(--accent)" class="pipeline-arrow"/>
+      <polygon points="358,35 371,28 371,42" fill="var(--green)" class="pipeline-arrow"/>
+      <polygon points="545,35 558,28 558,42" fill="var(--accent)" class="pipeline-arrow"/>
+    </svg>
+  </div>
+
+  <!-- About -->
+  <section id="about">
+    <div class="reveal">
+      <div class="section-label">About</div>
+      <h2>A bit about me</h2>
+    </div>
+
+    <div class="about-grid">
+      <div class="about-text reveal">
+        <p>
+          I'm a computer vision engineer passionate about building systems that extract meaning from visual data. I specialize in designing, training, and deploying deep learning models for perception tasks at scale.
+        </p>
+        <p>
+          My journey started with classical image processing and OpenCV, and evolved into deep learning when I saw a CNN outperform hand-crafted features on every benchmark. Today I work across the full vision pipeline -- from data collection and annotation to model optimization and edge deployment.
+        </p>
+        <p>
+          When I'm not training models, you'll find me reading papers on arXiv, contributing to open-source CV libraries, or experimenting with novel architectures for 3D understanding and video analysis.
+        </p>
+      </div>
+
+      <!-- Orbital tech visualization (replaces grid on desktop) -->
+      <div class="tech-orbital-wrap reveal" style="transition-delay: 0.15s;">
+        <canvas id="tech-orbital-canvas"></canvas>
+      </div>
+      <div class="tech-stack tech-stack-fallback reveal" style="transition-delay: 0.15s;">
+        <div class="tech-category">
+          <h4>Deep Learning</h4>
+          <div class="tech-list">
+            <div class="tech-item">PyTorch / Lightning</div>
+            <div class="tech-item">TensorFlow / Keras</div>
+            <div class="tech-item">Hugging Face</div>
+            <div class="tech-item">Weights & Biases</div>
+          </div>
+        </div>
+        <div class="tech-category">
+          <h4>Vision</h4>
+          <div class="tech-list">
+            <div class="tech-item">OpenCV</div>
+            <div class="tech-item">Detectron2 / MMDet</div>
+            <div class="tech-item">Open3D / PCL</div>
+            <div class="tech-item">Albumentations</div>
+          </div>
+        </div>
+        <div class="tech-category">
+          <h4>Languages</h4>
+          <div class="tech-list">
+            <div class="tech-item">Python</div>
+            <div class="tech-item">C++ / CUDA</div>
+            <div class="tech-item">Rust</div>
+            <div class="tech-item">GLSL / Shaders</div>
+          </div>
+        </div>
+        <div class="tech-category">
+          <h4>Deployment</h4>
+          <div class="tech-list">
+            <div class="tech-item">TensorRT / ONNX</div>
+            <div class="tech-item">Triton Server</div>
+            <div class="tech-item">Docker / K8s</div>
+            <div class="tech-item">Jetson / Edge TPU</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="experience reveal">
+      <h3 style="font-size: 1.3rem; margin-bottom: 2rem;">Experience</h3>
+      <div class="timeline">
+        <div class="timeline-item">
+          <div class="date">2024 - Present</div>
+          <h4>Senior Computer Vision Engineer</h4>
+          <div class="company">Your Company</div>
+          <p>Leading the perception team building real-time multi-sensor fusion for autonomous systems. Designed a transformer-based detection pipeline achieving 45 mAP on internal benchmarks while maintaining 30 FPS on embedded hardware.</p>
+        </div>
+        <div class="timeline-item">
+          <div class="date">2022 - 2024</div>
+          <h4>Computer Vision Engineer</h4>
+          <div class="company">Previous Company</div>
+          <p>Built and deployed instance segmentation models for industrial quality inspection. Reduced defect escape rate by 73% and optimized inference latency from 200ms to 35ms using TensorRT quantization.</p>
+        </div>
+        <div class="timeline-item">
+          <div class="date">2020 - 2022</div>
+          <h4>ML Engineer / Research Assistant</h4>
+          <div class="company">University / First Company</div>
+          <p>Developed novel data augmentation strategies for medical image segmentation. Published 2 papers at MICCAI and contributed to open-source annotation tooling.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CV Pipeline Divider: About → Publications -->
+  <div class="pipeline-divider" aria-hidden="true">
+    <svg viewBox="0 0 800 70" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+      <line x1="0" y1="35" x2="800" y2="35" stroke="var(--border)" stroke-width="1" class="pipeline-line"/>
+      <g class="pipeline-node" transform="translate(150,35)">
+        <rect x="-38" y="-14" width="76" height="28" rx="5" fill="var(--surface)" stroke="var(--accent)" stroke-width="1.2"/>
+        <text x="0" y="5" text-anchor="middle" fill="var(--accent)" font-family="JetBrains Mono" font-size="11">TRAIN</text>
+      </g>
+      <g class="pipeline-node" transform="translate(400,35)">
+        <rect x="-52" y="-14" width="104" height="28" rx="5" fill="var(--surface)" stroke="var(--green)" stroke-width="1.2"/>
+        <text x="0" y="5" text-anchor="middle" fill="var(--green)" font-family="JetBrains Mono" font-size="11">EVALUATE</text>
+      </g>
+      <g class="pipeline-node" transform="translate(650,35)">
+        <rect x="-44" y="-14" width="88" height="28" rx="5" fill="var(--surface)" stroke="var(--accent)" stroke-width="1.2"/>
+        <text x="0" y="5" text-anchor="middle" fill="var(--accent)" font-family="JetBrains Mono" font-size="11">PUBLISH</text>
+      </g>
+      <polygon points="200,35 213,28 213,42" fill="var(--accent)" class="pipeline-arrow"/>
+      <polygon points="460,35 473,28 473,42" fill="var(--green)" class="pipeline-arrow"/>
+    </svg>
+  </div>
+
+  <!-- Publications -->
+  <section id="publications">
+    <div class="reveal">
+      <div class="section-label">Publications</div>
+      <h2>Research & Papers</h2>
+      <p class="section-desc">Peer-reviewed publications at top computer vision and machine learning venues.</p>
+    </div>
+
+    <div class="pub-list">
+      <div class="pub-card reveal">
+        <span class="pub-venue">CVPR 2025</span>
+        <h3>Efficient Multi-Scale Feature Fusion for Real-Time Panoptic Segmentation</h3>
+        <div class="pub-authors"><strong>qbit-glitch</strong>, J. Chen, A. Kumar, R. Patel</div>
+        <p>A novel lightweight fusion module that unifies semantic and instance segmentation branches, achieving 48.3 PQ on COCO Panoptic while running at 28 FPS on a single GPU.</p>
+        <div class="pub-links">
+          <a href="#" class="pub-link">Paper</a>
+          <a href="#" class="pub-link">Code</a>
+          <a href="#" class="pub-link">BibTeX</a>
+        </div>
+      </div>
+
+      <div class="pub-card reveal">
+        <span class="pub-venue">ECCV 2024</span>
+        <h3>Self-Supervised Depth Estimation via Cross-Modal Consistency in Dynamic Scenes</h3>
+        <div class="pub-authors"><strong>qbit-glitch</strong>, S. Li, M. Torres</div>
+        <p>A self-supervised framework that learns depth from monocular video by enforcing geometric consistency between predicted depth, optical flow, and ego-motion, with explicit handling of moving objects.</p>
+        <div class="pub-links">
+          <a href="#" class="pub-link">Paper</a>
+          <a href="#" class="pub-link">Code</a>
+          <a href="#" class="pub-link">BibTeX</a>
+        </div>
+      </div>
+
+      <div class="pub-card reveal">
+        <span class="pub-venue">MICCAI 2023</span>
+        <h3>Domain-Adaptive Augmentation Strategies for Low-Resource Medical Image Segmentation</h3>
+        <div class="pub-authors"><strong>qbit-glitch</strong>, K. Wang, D. Nakamura</div>
+        <p>Proposed a learned augmentation policy tailored to medical imaging that improves segmentation Dice score by 8.4% on polyp detection when training data is limited to 50 samples.</p>
+        <div class="pub-links">
+          <a href="#" class="pub-link">Paper</a>
+          <a href="#" class="pub-link">Code</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CV Pipeline Divider: Publications → Blog -->
+  <div class="pipeline-divider" aria-hidden="true">
+    <svg viewBox="0 0 800 70" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+      <line x1="0" y1="35" x2="800" y2="35" stroke="var(--border)" stroke-width="1" class="pipeline-line"/>
+      <g class="pipeline-node" transform="translate(160,35)">
+        <rect x="-42" y="-14" width="84" height="28" rx="5" fill="var(--surface)" stroke="var(--green)" stroke-width="1.2"/>
+        <text x="0" y="5" text-anchor="middle" fill="var(--green)" font-family="JetBrains Mono" font-size="11">EXPORT</text>
+      </g>
+      <g class="pipeline-node" transform="translate(400,35)">
+        <rect x="-52" y="-14" width="104" height="28" rx="5" fill="var(--surface)" stroke="var(--accent)" stroke-width="1.2"/>
+        <text x="0" y="5" text-anchor="middle" fill="var(--accent)" font-family="JetBrains Mono" font-size="11">OPTIMIZE</text>
+      </g>
+      <g class="pipeline-node" transform="translate(640,35)">
+        <rect x="-42" y="-14" width="84" height="28" rx="5" fill="var(--surface)" stroke="var(--green)" stroke-width="1.2"/>
+        <text x="0" y="5" text-anchor="middle" fill="var(--green)" font-family="JetBrains Mono" font-size="11">DEPLOY</text>
+      </g>
+      <polygon points="215,35 228,28 228,42" fill="var(--green)" class="pipeline-arrow"/>
+      <polygon points="460,35 473,28 473,42" fill="var(--accent)" class="pipeline-arrow"/>
+    </svg>
+  </div>
+
+  <!-- Blog -->
+  <section id="blog">
+    <div class="reveal">
+      <div class="section-label">Blog</div>
+      <h2>Writing & Experiments</h2>
+      <p class="section-desc">Vision experiments, tutorials on model deployment, and deep dives into CV research.</p>
+    </div>
+
+    <div class="blog-filters reveal">
+      <button class="blog-filter active" data-filter="all">All</button>
+      <button class="blog-filter" data-filter="mini-project">Mini Projects</button>
+      <button class="blog-filter" data-filter="tutorial">Tutorials</button>
+      <button class="blog-filter" data-filter="deep-dive">Deep Dives</button>
+    </div>
+
+    <div class="blog-grid" id="blog-grid">
+      <!-- Blog cards rendered by JS -->
+    </div>
+  </section>
+
+  <!-- Blog post overlay (modal) -->
+  <div class="blog-post-overlay" id="blog-overlay">
+    <div class="blog-post-content">
+      <button class="blog-post-close" onclick="closeBlogPost()" aria-label="Close">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+      <div id="blog-post-inner"></div>
+    </div>
+  </div>
+
+  <!-- Contact -->
+  <section id="contact" style="position: relative; overflow: hidden;">
+    <canvas id="contact-particles-canvas" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;"></canvas>
+    <div class="reveal">
+      <div class="section-label">Contact</div>
+      <h2>Let's work together</h2>
+      <p class="section-desc">
+        Open to research collaborations, consulting on vision systems, or full-time roles in perception and computer vision.
+      </p>
+    </div>
+    <div class="contact-grid reveal">
+      <a href="mailto:your@email.com" class="contact-card">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 7l-10 7L2 7"/></svg>
+        <span>Email</span>
+      </a>
+      <a href="https://github.com/qbit-glitch" class="contact-card">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+        <span>GitHub</span>
+      </a>
+      <a href="https://linkedin.com/in/yourusername" class="contact-card">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+        <span>LinkedIn</span>
+      </a>
+      <a href="https://twitter.com/yourusername" class="contact-card">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+        <span>X / Twitter</span>
+      </a>
+      <a href="https://scholar.google.com/citations?user=yourid" class="contact-card">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M5.242 13.769L0 9.5 12 0l12 9.5-5.242 4.269C17.548 11.249 14.978 9.5 12 9.5c-2.977 0-5.548 1.748-6.758 4.269zM12 10a7 7 0 100 14 7 7 0 000-14z"/></svg>
+        <span>Google Scholar</span>
+      </a>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-links">
+      <a href="https://github.com/qbit-glitch">GitHub</a>
+      <a href="https://linkedin.com/in/yourusername">LinkedIn</a>
+      <a href="https://twitter.com/yourusername">X</a>
+      <a href="mailto:your@email.com">Email</a>
+    </div>
+    <p>Designed & built by qbit-glitch &middot; &copy; 2026 &middot; <a href="admin.html">Admin</a></p>
+  </footer>
+
+  <!-- SpaceTimeDB Client Bundle -->
+  <script src="dist/stdb-client.js"></script>
+
+  <script>
+    // ─── Scroll reveal (IntersectionObserver — no scroll listener needed) ───
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+        }
+      });
+    }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+    // ─── Typing animation in terminal ───
+    const commands = [
+      'python train.py --model yolov9 --epochs 100',
+      'trtexec --onnx=model.onnx --fp16',
+      'python eval.py --dataset coco --iou 0.5',
+      'docker compose up inference-server',
+    ];
+    let cmdIndex = 0;
+    let charIndex = 0;
+    let isDeleting = false;
+    const typedEl = document.getElementById('typed-cmd');
+
+    function typeCmd() {
+      const current = commands[cmdIndex];
+      if (!isDeleting) {
+        typedEl.textContent = current.substring(0, charIndex++);
+        if (charIndex > current.length) {
+          isDeleting = true;
+          setTimeout(typeCmd, 2000);
+          return;
+        }
+        setTimeout(typeCmd, 60 + Math.random() * 40);
+      } else {
+        typedEl.textContent = current.substring(0, charIndex--);
+        if (charIndex < 0) {
+          isDeleting = false;
+          charIndex = 0;
+          cmdIndex = (cmdIndex + 1) % commands.length;
+          setTimeout(typeCmd, 500);
+          return;
+        }
+        setTimeout(typeCmd, 30);
+      }
+    }
+    setTimeout(typeCmd, 1500);
+
+    // ─── Close mobile nav on link click ───
+    document.querySelectorAll('nav ul a').forEach(link => {
+      link.addEventListener('click', () => {
+        document.querySelector('nav ul').classList.remove('open');
+      });
+    });
+
+    // ─── Single RAF-throttled scroll handler (nav + active link + orbs) ───
+    const nav = document.getElementById('navbar');
+    const sections = document.querySelectorAll('section[id]');
+    const orbs = document.querySelectorAll('.orb');
+    let scrollTicking = false;
+
+    window.addEventListener('scroll', () => {
+      if (!scrollTicking) {
+        requestAnimationFrame(() => {
+          const scrollY = window.scrollY;
+
+          // Nav background
+          nav.classList.toggle('scrolled', scrollY > 20);
+
+          // Active nav link
+          const scrollCheck = scrollY + 100;
+          sections.forEach(section => {
+            const top = section.offsetTop;
+            const height = section.offsetHeight;
+            const id = section.getAttribute('id');
+            const link = document.querySelector(`nav a[href="#${id}"]`);
+            if (link) {
+              link.classList.toggle('active', scrollCheck >= top && scrollCheck < top + height);
+            }
+          });
+
+          // Orb parallax (very cheap — just 3 transforms)
+          orbs.forEach((orb, i) => {
+            const speed = 0.02 + i * 0.01;
+            orb.style.transform = `translateY(${scrollY * speed}px)`;
+          });
+
+          scrollTicking = false;
+        });
+        scrollTicking = true;
+      }
+    }, { passive: true });
+    // ─── Blog system (SpaceTimeDB-powered) ───
+    let blogPosts = [];
+    let stdbConnected = false;
+
+    // Fallback posts in case SpaceTimeDB is unreachable
+    const fallbackPosts = [
+      {
+        id: 1,
+        title: "Building a Real-Time Lane Detection System from Scratch",
+        category: "mini-project",
+        date: "Mar 5, 2026",
+        summary: "A weekend project: building a lane detection pipeline that runs at 60 FPS using a lightweight encoder-decoder network with CUDA-accelerated post-processing.",
+        body: `
+          <h3>Why lane detection?</h3>
+          <p>Lane detection is one of the fundamental perception tasks in autonomous driving. I wanted to understand the full pipeline — from raw camera input to polynomial lane fits — without relying on heavy frameworks.</p>
+
+          <h3>The architecture</h3>
+          <p>A lightweight ENet-based encoder-decoder with a custom row-anchor prediction head, trained on CULane and TuSimple datasets.</p>
+          <pre><code>class LaneNet(nn.Module):
+    def __init__(self, num_lanes=4, row_anchors=56):
+        super().__init__()
+        self.backbone = ENetEncoder(pretrained=True)
+        self.decoder = LaneDecoder(
+            in_channels=128,
+            num_lanes=num_lanes,
+            row_anchors=row_anchors
+        )
+
+    def forward(self, x):
+        features = self.backbone(x)
+        lane_probs, offsets = self.decoder(features)
+        return lane_probs, offsets</code></pre>
+
+          <h3>Key takeaways</h3>
+          <ul>
+            <li>Row-anchor formulation is much faster than per-pixel segmentation</li>
+            <li>CUDA post-processing for polynomial fitting gave a 4x speedup over NumPy</li>
+            <li>Test-time augmentation with horizontal flips improved accuracy by 2.3%</li>
+          </ul>
+
+          <p>The final model runs at 62 FPS on an RTX 3060 and achieves 96.2% accuracy on TuSimple's test set.</p>
+        `
+      },
+      {
+        id: 2,
+        title: "How Vision Transformers Actually Work",
+        category: "deep-dive",
+        date: "Feb 20, 2026",
+        summary: "A deep dive into ViT architecture — patch embeddings, positional encoding, and why self-attention works for images. With code and visualizations.",
+        body: `
+          <h3>From pixels to patches</h3>
+          <p>The key insight of ViT is treating an image as a sequence of patches, just like words in a sentence. A 224x224 image becomes 196 patches of 16x16 pixels.</p>
+
+          <pre><code># Patch embedding: the core idea
+class PatchEmbed(nn.Module):
+    def __init__(self, img_size=224, patch_size=16, embed_dim=768):
+        super().__init__()
+        self.num_patches = (img_size // patch_size) ** 2
+        self.proj = nn.Conv2d(
+            3, embed_dim,
+            kernel_size=patch_size,
+            stride=patch_size
+        )
+
+    def forward(self, x):
+        # (B, 3, 224, 224) -> (B, 768, 14, 14) -> (B, 196, 768)
+        return self.proj(x).flatten(2).transpose(1, 2)</code></pre>
+
+          <h3>Why self-attention works for vision</h3>
+          <p>Unlike CNNs which have fixed receptive fields, self-attention lets every patch attend to every other patch from layer 1. This global context is why ViTs excel at tasks requiring long-range spatial reasoning.</p>
+
+          <h3>The catch</h3>
+          <ul>
+            <li>ViTs need much more data than CNNs to train well (JFT-300M vs ImageNet)</li>
+            <li>Hybrid architectures (CNN stem + Transformer body) often win in practice</li>
+            <li>Positional embeddings learn spatial structure — you can visualize them as 2D grids</li>
+          </ul>
+
+          <p>Understanding ViTs is essential now that nearly every SOTA vision model uses attention in some form.</p>
+        `
+      },
+      {
+        id: 3,
+        title: "Deploy a YOLO Model to Jetson in 30 Minutes",
+        category: "tutorial",
+        date: "Feb 8, 2026",
+        summary: "Step-by-step guide to exporting a YOLOv8 model to TensorRT and running real-time inference on an NVIDIA Jetson Orin Nano.",
+        body: `
+          <h3>What we're building</h3>
+          <p>A complete pipeline: train YOLOv8 on a custom dataset, export to ONNX, convert to TensorRT, and run at 30+ FPS on Jetson hardware.</p>
+
+          <h3>Step 1: Export to ONNX</h3>
+          <pre><code>from ultralytics import YOLO
+
+model = YOLO("yolov8n.pt")
+model.export(
+    format="onnx",
+    imgsz=640,
+    simplify=True,
+    opset=17
+)</code></pre>
+
+          <h3>Step 2: Convert to TensorRT on Jetson</h3>
+          <pre><code># On the Jetson device
+$ trtexec \\
+    --onnx=yolov8n.onnx \\
+    --saveEngine=yolov8n.engine \\
+    --fp16 \\
+    --workspace=4096</code></pre>
+
+          <h3>Step 3: Run inference</h3>
+          <pre><code>import tensorrt as trt
+import pycuda.driver as cuda
+
+engine = load_engine("yolov8n.engine")
+context = engine.create_execution_context()
+
+# Allocate buffers, run inference
+# See full code on GitHub</code></pre>
+
+          <h3>Performance results</h3>
+          <ul>
+            <li>Jetson Orin Nano: <strong>34 FPS</strong> at FP16 (640x640)</li>
+            <li>INT8 quantization pushes it to <strong>52 FPS</strong> with minimal mAP loss</li>
+            <li>Total power draw: ~15W — perfect for robotics</li>
+          </ul>
+        `
+      },
+      {
+        id: 4,
+        title: "Building a Custom Object Tracker with DeepSORT + Re-ID",
+        category: "mini-project",
+        date: "Jan 25, 2026",
+        summary: "Implementing multi-object tracking by combining YOLOv8 detections with a custom Re-ID feature extractor and Kalman filter association.",
+        body: `
+          <h3>The problem</h3>
+          <p>Detection tells you what's in a frame. Tracking tells you which detection in frame N corresponds to which detection in frame N+1. This is harder than it sounds.</p>
+
+          <h3>The pipeline</h3>
+          <pre><code>class MultiObjectTracker:
+    def __init__(self):
+        self.detector = YOLO("yolov8m.pt")
+        self.reid_model = ReIDNet(backbone="osnet_x1_0")
+        self.kalman_filters = {}
+
+    def update(self, frame):
+        # 1. Detect objects
+        dets = self.detector(frame)
+
+        # 2. Extract appearance features
+        crops = extract_crops(frame, dets)
+        features = self.reid_model(crops)
+
+        # 3. Associate using Hungarian algorithm
+        # Cost = 0.6 * IoU_dist + 0.4 * cosine_dist
+        matches = hungarian_match(
+            self.tracks, dets, features
+        )
+
+        # 4. Update Kalman filters
+        self.update_tracks(matches)</code></pre>
+
+          <h3>What I learned</h3>
+          <ul>
+            <li>Re-ID features are critical for handling occlusion — IoU alone fails badly</li>
+            <li>The Kalman filter's prediction step bridges gaps of 5-10 missing frames</li>
+            <li>Training the Re-ID model on domain-specific data improved MOTA by 12%</li>
+          </ul>
+        `
+      },
+      {
+        id: 5,
+        title: "Quantization for CV Models: A Practical Guide",
+        category: "tutorial",
+        date: "Jan 12, 2026",
+        summary: "How to shrink your vision model by 4x and speed up inference by 3x using INT8 quantization. Post-training and quantization-aware training compared.",
+        body: `
+          <h3>Why quantize?</h3>
+          <p>Your FP32 model is 200MB and runs at 10 FPS. After INT8 quantization: 50MB and 30 FPS. Same accuracy (within 0.5% mAP). Here's how.</p>
+
+          <h3>Post-Training Quantization (PTQ)</h3>
+          <pre><code>import torch
+from torch.quantization import quantize_dynamic
+
+# Dynamic quantization (easiest)
+model_int8 = quantize_dynamic(
+    model, {torch.nn.Linear}, dtype=torch.qint8
+)
+
+# Static quantization (better accuracy)
+model.qconfig = torch.quantization.get_default_qconfig('x86')
+model_prepared = torch.quantization.prepare(model)
+
+# Calibrate with representative data
+for batch in calibration_loader:
+    model_prepared(batch)
+
+model_quantized = torch.quantization.convert(model_prepared)</code></pre>
+
+          <h3>Quantization-Aware Training (QAT)</h3>
+          <pre><code># Insert fake quantize ops during training
+model.qconfig = torch.quantization.get_default_qat_qconfig('x86')
+model_qat = torch.quantization.prepare_qat(model.train())
+
+# Fine-tune for a few epochs
+for epoch in range(5):
+    train_one_epoch(model_qat, train_loader)
+
+model_final = torch.quantization.convert(model_qat.eval())</code></pre>
+
+          <h3>When to use what</h3>
+          <ul>
+            <li><strong>PTQ</strong>: Quick wins, < 1% accuracy loss on most models</li>
+            <li><strong>QAT</strong>: When PTQ drops accuracy too much, or for very small models</li>
+            <li><strong>TensorRT FP16</strong>: Often the best effort-to-speedup ratio on NVIDIA GPUs</li>
+            <li>Always validate on your test set — some layers are quantization-sensitive</li>
+          </ul>
+        `
+      },
+      {
+        id: 6,
+        title: "Understanding Non-Maximum Suppression (and Why It's a Bottleneck)",
+        category: "deep-dive",
+        date: "Dec 28, 2025",
+        summary: "A visual walkthrough of NMS — the post-processing step every detector uses. Why greedy NMS fails, and modern alternatives like Soft-NMS and NMS-free detection.",
+        body: `
+          <h3>The problem</h3>
+          <p>Object detectors produce thousands of overlapping bounding boxes per image. NMS filters them down to the final set of detections. But the standard greedy algorithm has issues.</p>
+
+          <h3>Greedy NMS in 10 lines</h3>
+          <pre><code>def nms(boxes, scores, iou_threshold=0.5):
+    order = scores.argsort(descending=True)
+    keep = []
+
+    while order.numel() > 0:
+        i = order[0]
+        keep.append(i)
+        if order.numel() == 1:
+            break
+        ious = compute_iou(boxes[i], boxes[order[1:]])
+        mask = ious <= iou_threshold
+        order = order[1:][mask]
+
+    return keep</code></pre>
+
+          <h3>Why greedy NMS fails</h3>
+          <ul>
+            <li>Crowded scenes: nearby objects get suppressed (the "crowd occlusion" problem)</li>
+            <li>Hard threshold: IoU 0.49 keeps a box, 0.51 kills it — no middle ground</li>
+            <li>Sequential: can't be parallelized on GPU efficiently</li>
+          </ul>
+
+          <h3>Modern alternatives</h3>
+          <ul>
+            <li><strong>Soft-NMS</strong>: Decays scores instead of hard suppression — better for crowds</li>
+            <li><strong>DIoU-NMS</strong>: Uses distance between centers, not just IoU overlap</li>
+            <li><strong>NMS-free detectors</strong> (DETR, RT-DETR): End-to-end set prediction with Hungarian matching eliminates NMS entirely</li>
+          </ul>
+
+          <p>If your detector runs fast but NMS is the bottleneck, consider batched NMS via <code>torchvision.ops.batched_nms</code> or switching to an NMS-free architecture.</p>
+        `
+      }
+    ];
+
+    // Render blog cards
+    let currentFilter = 'all';
+    function renderBlogCards(filter) {
+      if (filter !== undefined) currentFilter = filter;
+      const grid = document.getElementById('blog-grid');
+      const source = blogPosts.length > 0 ? blogPosts : fallbackPosts;
+      const filtered = currentFilter === 'all' ? source : source.filter(p => p.category === currentFilter);
+      // Sort chronologically descending (newest first) by parsing date strings
+      filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+      grid.innerHTML = filtered.map(post => {
+        const postId = typeof post.id === 'bigint' ? post.id.toString() : post.id;
+        return `
+          <div class="blog-card reveal visible" onclick="openBlogPost('${postId}')">
+            <div class="blog-meta">
+              <span class="blog-date">${post.date}</span>
+              <span class="blog-category ${post.category}">${post.category.replace('-', ' ')}</span>
+            </div>
+            <h3>${post.title}</h3>
+            <p>${post.summary}</p>
+            <span class="read-more">
+              Read more
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Filter buttons
+    document.querySelectorAll('.blog-filter').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.blog-filter').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        renderBlogCards(btn.dataset.filter);
+      });
+    });
+
+    // Open blog post modal
+    function openBlogPost(id) {
+      const source = blogPosts.length > 0 ? blogPosts : fallbackPosts;
+      const post = source.find(p => {
+        const postId = typeof p.id === 'bigint' ? p.id.toString() : String(p.id);
+        return postId === String(id);
+      });
+      if (!post) return;
+      const inner = document.getElementById('blog-post-inner');
+      inner.innerHTML = `
+        <h2>${post.title}</h2>
+        <div class="blog-meta">
+          <span class="blog-date">${post.date}</span>
+          <span class="blog-category ${post.category}">${post.category.replace('-', ' ')}</span>
+        </div>
+        <div class="blog-post-body">${post.body}</div>
+      `;
+      document.getElementById('blog-overlay').classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+
+    // Close blog post modal
+    function closeBlogPost() {
+      document.getElementById('blog-overlay').classList.remove('open');
+      document.body.style.overflow = '';
+    }
+    document.getElementById('blog-overlay').addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) closeBlogPost();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeBlogPost();
+    });
+
+    // ─── Connect to SpaceTimeDB ───
+    // Show fallback posts immediately while connecting
+    renderBlogCards('all');
+
+    // Then connect to SpaceTimeDB for real-time data
+    if (typeof StdbClient !== 'undefined' && StdbClient.connect) {
+      try {
+        StdbClient.connect(function(posts) {
+          console.log('[Blog] Received ' + posts.length + ' posts from SpaceTimeDB');
+          if (posts.length > 0) {
+            blogPosts = posts;
+            stdbConnected = true;
+            renderBlogCards();
+          }
+        });
+      } catch (e) {
+        console.warn('[Blog] SpaceTimeDB connection failed, using fallback posts:', e);
+      }
+    } else {
+      console.log('[Blog] SpaceTimeDB client not loaded, using fallback posts');
+    }
+
+    // ─── Image Similarity Graph Animation ───
+    (function() {
+      const canvas = document.getElementById('image-graph-canvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const dpr = window.devicePixelRatio || 1;
+      let W, H;
+
+      function resize() {
+        const hero = document.getElementById('hero');
+        W = hero.offsetWidth;
+        H = hero.offsetHeight;
+        canvas.width = W * dpr;
+        canvas.height = H * dpr;
+        canvas.style.width = W + 'px';
+        canvas.style.height = H + 'px';
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+      resize();
+      window.addEventListener('resize', resize);
+
+      // CV-themed thumbnail types
+      const THUMB_TYPES = [
+        'bbox',        // object detection with bounding boxes
+        'heatmap',     // attention / class activation map
+        'edges',       // edge detection (Canny-like)
+        'segmentation',// semantic segmentation masks
+        'depth',       // depth map gradient
+        'keypoints',   // pose / keypoint detection
+        'flow',        // optical flow arrows
+        'contours',    // contour detection
+      ];
+
+      const ACCENT = { r: 129, g: 140, b: 248 };
+      const GREEN  = { r: 52, g: 211, b: 153 };
+      const PINK   = { r: 244, g: 114, b: 182 };
+      const PURPLE = { r: 167, g: 139, b: 250 };
+      const COLORS = [ACCENT, GREEN, PINK, PURPLE];
+
+      const NODE_SIZE = 52;
+      const NUM_NODES = 18;
+      const EDGE_THRESHOLD = 0.45; // similarity threshold to draw edge
+
+      // Seed random for reproducibility
+      let seed = 42;
+      function seededRandom() {
+        seed = (seed * 16807 + 0) % 2147483647;
+        return (seed - 1) / 2147483646;
+      }
+
+      // Create nodes
+      const nodes = [];
+      for (let i = 0; i < NUM_NODES; i++) {
+        const type = THUMB_TYPES[Math.floor(seededRandom() * THUMB_TYPES.length)];
+        const color = COLORS[Math.floor(seededRandom() * COLORS.length)];
+        nodes.push({
+          x: seededRandom() * W,
+          y: seededRandom() * H,
+          vx: (seededRandom() - 0.5) * 0.3,
+          vy: (seededRandom() - 0.5) * 0.3,
+          type: type,
+          color: color,
+          similarity: [], // filled below
+          phase: seededRandom() * Math.PI * 2,
+          size: NODE_SIZE + (seededRandom() - 0.5) * 12,
+        });
+      }
+
+      // Generate similarity matrix (symmetric)
+      for (let i = 0; i < NUM_NODES; i++) {
+        nodes[i].similarity = [];
+        for (let j = 0; j < NUM_NODES; j++) {
+          if (i === j) { nodes[i].similarity.push(1); continue; }
+          // Same type => higher similarity
+          const sameType = nodes[i].type === nodes[j].type ? 0.3 : 0;
+          const sameColor = nodes[i].color === nodes[j].color ? 0.2 : 0;
+          const base = seededRandom() * 0.5;
+          nodes[i].similarity.push(Math.min(1, base + sameType + sameColor));
+        }
+      }
+
+      // Pre-render thumbnail textures to offscreen canvases
+      function renderThumbnail(node) {
+        const s = Math.round(node.size);
+        const oc = document.createElement('canvas');
+        oc.width = s * 2; oc.height = s * 2;
+        const c = oc.getContext('2d');
+        const col = node.color;
+        const colStr = `rgb(${col.r},${col.g},${col.b})`;
+        const colDim = `rgba(${col.r},${col.g},${col.b},0.3)`;
+
+        // Background
+        c.fillStyle = '#111113';
+        c.fillRect(0, 0, s*2, s*2);
+
+        // Draw based on type
+        switch(node.type) {
+          case 'bbox':
+            // Simulate object detection: gradient bg + boxes
+            c.fillStyle = `rgba(${col.r},${col.g},${col.b},0.08)`;
+            c.fillRect(0, 0, s*2, s*2);
+            // Draw 2-3 bounding boxes
+            c.strokeStyle = colStr;
+            c.lineWidth = 1.5;
+            c.strokeRect(s*0.2, s*0.3, s*0.8, s*0.9);
+            c.strokeRect(s*0.9, s*0.6, s*0.7, s*0.7);
+            // Labels
+            c.fillStyle = colStr;
+            c.fillRect(s*0.2, s*0.18, s*0.5, s*0.15);
+            c.fillStyle = '#111113';
+            c.font = `${s*0.1}px monospace`;
+            c.fillText('car 0.94', s*0.24, s*0.3);
+            c.fillStyle = colStr;
+            c.fillRect(s*0.9, s*0.48, s*0.5, s*0.15);
+            c.fillStyle = '#111113';
+            c.fillText('person', s*0.94, s*0.6);
+            break;
+
+          case 'heatmap':
+            // Simulate attention heatmap
+            for (let y = 0; y < s*2; y += 4) {
+              for (let x = 0; x < s*2; x += 4) {
+                const cx = s, cy = s*0.8;
+                const dist = Math.sqrt((x-cx)**2 + (y-cy)**2) / s;
+                const heat = Math.max(0, 1 - dist * 0.9);
+                const r = Math.round(col.r * heat + 20 * (1-heat));
+                const g = Math.round(col.g * heat * 0.3);
+                const b = Math.round(col.b * heat * 0.6 + 30 * (1-heat));
+                c.fillStyle = `rgba(${r},${g},${b},${0.3 + heat * 0.7})`;
+                c.fillRect(x, y, 4, 4);
+              }
+            }
+            break;
+
+          case 'edges':
+            // Simulate Canny edge detection
+            c.fillStyle = '#0a0a0a';
+            c.fillRect(0, 0, s*2, s*2);
+            c.strokeStyle = colStr;
+            c.lineWidth = 1;
+            c.beginPath();
+            // Draw random edge-like lines
+            for (let k = 0; k < 12; k++) {
+              const x1 = seededRandom() * s * 2;
+              const y1 = seededRandom() * s * 2;
+              c.moveTo(x1, y1);
+              c.lineTo(x1 + (seededRandom()-0.5)*s*0.8, y1 + (seededRandom()-0.5)*s*0.4);
+            }
+            // Shape outlines
+            c.moveTo(s*0.3, s*1.5); c.lineTo(s*0.8, s*0.4); c.lineTo(s*1.4, s*0.5);
+            c.lineTo(s*1.6, s*1.3); c.lineTo(s*0.9, s*1.6); c.closePath();
+            c.stroke();
+            break;
+
+          case 'segmentation':
+            // Semantic segmentation masks
+            const segColors = [
+              `rgba(${col.r},${col.g},${col.b},0.5)`,
+              `rgba(${PINK.r},${PINK.g},${PINK.b},0.4)`,
+              `rgba(${GREEN.r},${GREEN.g},${GREEN.b},0.4)`,
+              `rgba(${PURPLE.r},${PURPLE.g},${PURPLE.b},0.35)`,
+            ];
+            // Irregular regions
+            for (let k = 0; k < 4; k++) {
+              c.fillStyle = segColors[k];
+              c.beginPath();
+              const cx = seededRandom() * s * 1.5 + s * 0.2;
+              const cy = seededRandom() * s * 1.5 + s * 0.2;
+              c.moveTo(cx, cy);
+              for (let p = 0; p < 6; p++) {
+                const a = (p / 6) * Math.PI * 2;
+                const r = s * 0.3 + seededRandom() * s * 0.3;
+                c.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r);
+              }
+              c.closePath();
+              c.fill();
+            }
+            break;
+
+          case 'depth':
+            // Depth map gradient
+            const grad = c.createLinearGradient(0, 0, s*2, s*2);
+            grad.addColorStop(0, `rgba(${col.r},${col.g},${col.b},0.8)`);
+            grad.addColorStop(0.5, `rgba(${col.r*0.3},${col.g*0.3},${col.b*0.5},0.6)`);
+            grad.addColorStop(1, `rgba(20,20,30,0.9)`);
+            c.fillStyle = grad;
+            c.fillRect(0, 0, s*2, s*2);
+            // Add some structure
+            c.fillStyle = `rgba(${col.r},${col.g},${col.b},0.3)`;
+            c.fillRect(s*0.4, s*0.2, s*0.6, s*1.4);
+            c.fillStyle = `rgba(${col.r},${col.g},${col.b},0.15)`;
+            c.fillRect(s*1.1, s*0.5, s*0.5, s*0.8);
+            break;
+
+          case 'keypoints':
+            // Pose keypoints
+            c.fillStyle = `rgba(${col.r},${col.g},${col.b},0.06)`;
+            c.fillRect(0, 0, s*2, s*2);
+            const kpts = [
+              [s, s*0.3], [s, s*0.6], [s*0.6, s*0.9], [s*1.4, s*0.9],
+              [s*0.5, s*1.4], [s*1.5, s*1.4], [s*0.7, s*0.5], [s*1.3, s*0.5],
+              [s*0.4, s*0.8], [s*1.6, s*0.8],
+            ];
+            // Skeleton lines
+            c.strokeStyle = `rgba(${col.r},${col.g},${col.b},0.6)`;
+            c.lineWidth = 1.5;
+            const bones = [[0,1],[1,2],[1,3],[2,4],[3,5],[0,6],[0,7],[6,8],[7,9]];
+            bones.forEach(([a,b]) => {
+              c.beginPath(); c.moveTo(kpts[a][0], kpts[a][1]); c.lineTo(kpts[b][0], kpts[b][1]); c.stroke();
+            });
+            // Keypoint dots
+            kpts.forEach(([kx,ky]) => {
+              c.beginPath(); c.arc(kx, ky, 3, 0, Math.PI*2);
+              c.fillStyle = colStr; c.fill();
+            });
+            break;
+
+          case 'flow':
+            // Optical flow arrows
+            c.fillStyle = '#0a0a0a';
+            c.fillRect(0, 0, s*2, s*2);
+            c.strokeStyle = colStr;
+            c.lineWidth = 1;
+            for (let fy = s*0.2; fy < s*1.8; fy += s*0.3) {
+              for (let fx = s*0.2; fx < s*1.8; fx += s*0.3) {
+                const angle = Math.sin(fx*0.02) * 0.8 + Math.cos(fy*0.03) * 0.5;
+                const len = s * 0.15 + seededRandom() * s * 0.1;
+                const ex = fx + Math.cos(angle) * len;
+                const ey = fy + Math.sin(angle) * len;
+                c.beginPath(); c.moveTo(fx, fy); c.lineTo(ex, ey); c.stroke();
+                // Arrowhead
+                const ha = angle + 2.5;
+                c.beginPath(); c.moveTo(ex, ey);
+                c.lineTo(ex - Math.cos(ha)*4, ey - Math.sin(ha)*4); c.stroke();
+              }
+            }
+            break;
+
+          case 'contours':
+            // Contour detection
+            c.fillStyle = '#0a0a0a';
+            c.fillRect(0, 0, s*2, s*2);
+            c.strokeStyle = colStr;
+            c.lineWidth = 1;
+            // Concentric irregular shapes
+            for (let ring = 0; ring < 4; ring++) {
+              c.globalAlpha = 0.4 + ring * 0.15;
+              c.beginPath();
+              const cx = s; const cy = s;
+              const baseR = s * 0.2 + ring * s * 0.2;
+              for (let a = 0; a <= Math.PI * 2; a += 0.3) {
+                const r = baseR + Math.sin(a * 3 + ring) * s * 0.08;
+                const px = cx + Math.cos(a) * r;
+                const py = cy + Math.sin(a) * r;
+                a === 0 ? c.moveTo(px, py) : c.lineTo(px, py);
+              }
+              c.closePath(); c.stroke();
+            }
+            c.globalAlpha = 1;
+            break;
+        }
+
+        // Border
+        c.strokeStyle = `rgba(${col.r},${col.g},${col.b},0.25)`;
+        c.lineWidth = 1;
+        c.strokeRect(0.5, 0.5, s*2-1, s*2-1);
+
+        return oc;
+      }
+
+      // Pre-render all thumbnails
+      const thumbs = nodes.map(n => renderThumbnail(n));
+
+      // Animation
+      let time = 0;
+      let mouseX = W / 2, mouseY = H / 2;
+      document.getElementById('hero').addEventListener('mousemove', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        mouseX = e.clientX - rect.left;
+        mouseY = e.clientY - rect.top;
+      });
+
+      function animate() {
+        time += 0.005;
+        ctx.clearRect(0, 0, W, H);
+
+        // Update positions with gentle drift + mouse repulsion
+        nodes.forEach((n, i) => {
+          // Gentle floating
+          n.x += n.vx + Math.sin(time + n.phase) * 0.15;
+          n.y += n.vy + Math.cos(time * 0.7 + n.phase) * 0.1;
+
+          // Mouse repulsion (subtle)
+          const dx = n.x - mouseX;
+          const dy = n.y - mouseY;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 150 && dist > 0) {
+            const force = (150 - dist) / 150 * 0.5;
+            n.x += (dx / dist) * force;
+            n.y += (dy / dist) * force;
+          }
+
+          // Wrap around edges with padding
+          const pad = n.size;
+          if (n.x < -pad) n.x = W + pad;
+          if (n.x > W + pad) n.x = -pad;
+          if (n.y < -pad) n.y = H + pad;
+          if (n.y > H + pad) n.y = -pad;
+
+          // Gentle inter-node repulsion (prevent overlap)
+          for (let j = i + 1; j < nodes.length; j++) {
+            const other = nodes[j];
+            const ddx = n.x - other.x;
+            const ddy = n.y - other.y;
+            const dd = Math.sqrt(ddx * ddx + ddy * ddy);
+            const minDist = n.size + other.size + 10;
+            if (dd < minDist && dd > 0) {
+              const push = (minDist - dd) / minDist * 0.3;
+              n.x += (ddx / dd) * push;
+              n.y += (ddy / dd) * push;
+              other.x -= (ddx / dd) * push;
+              other.y -= (ddy / dd) * push;
+            }
+          }
+        });
+
+        // Draw edges (similarity connections)
+        nodes.forEach((n, i) => {
+          for (let j = i + 1; j < nodes.length; j++) {
+            const sim = n.similarity[j];
+            if (sim < EDGE_THRESHOLD) continue;
+            const other = nodes[j];
+            const dx = n.x - other.x;
+            const dy = n.y - other.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist > 350) continue; // Don't draw very long edges
+
+            const alpha = (sim - EDGE_THRESHOLD) / (1 - EDGE_THRESHOLD) * 0.15;
+            const pulse = 0.5 + 0.5 * Math.sin(time * 2 + i + j);
+
+            ctx.beginPath();
+            ctx.moveTo(n.x, n.y);
+            ctx.lineTo(other.x, other.y);
+            ctx.strokeStyle = `rgba(${n.color.r},${n.color.g},${n.color.b},${alpha * (0.7 + pulse * 0.3)})`;
+            ctx.lineWidth = 0.5 + sim * 1;
+            ctx.stroke();
+
+            // Similarity label at midpoint (for high similarity edges)
+            if (sim > 0.7 && dist < 250) {
+              const mx = (n.x + other.x) / 2;
+              const my = (n.y + other.y) / 2;
+              ctx.font = '9px "JetBrains Mono", monospace';
+              ctx.fillStyle = `rgba(${n.color.r},${n.color.g},${n.color.b},${alpha * 2.5})`;
+              ctx.fillText(sim.toFixed(2), mx + 4, my - 4);
+            }
+          }
+        });
+
+        // Draw nodes (image thumbnails)
+        nodes.forEach((n, i) => {
+          const s = n.size;
+          // Glow effect
+          const glowAlpha = 0.04 + 0.02 * Math.sin(time * 1.5 + n.phase);
+          ctx.shadowColor = `rgba(${n.color.r},${n.color.g},${n.color.b},${glowAlpha})`;
+          ctx.shadowBlur = 15;
+
+          // Draw pre-rendered thumbnail
+          ctx.drawImage(thumbs[i], n.x - s, n.y - s, s * 2, s * 2);
+
+          ctx.shadowBlur = 0;
+
+          // Type label below
+          ctx.font = '8px "JetBrains Mono", monospace';
+          ctx.fillStyle = `rgba(${n.color.r},${n.color.g},${n.color.b},0.35)`;
+          ctx.textAlign = 'center';
+          ctx.fillText(n.type, n.x, n.y + s + 12);
+          ctx.textAlign = 'left';
+        });
+
+        requestAnimationFrame(animate);
+      }
+
+      // Start after a brief delay for page load
+      setTimeout(animate, 300);
+
+      // Re-init positions on resize
+      window.addEventListener('resize', () => {
+        resize();
+        nodes.forEach(n => {
+          if (n.x > W) n.x = Math.random() * W;
+          if (n.y > H) n.y = Math.random() * H;
+        });
+      });
+    })();
+  </script>
+  <script src="interactions.js" defer></script>
+
+</body>
+</html>

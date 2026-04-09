@@ -1,0 +1,17 @@
+{
+  "name": "portfolio-website",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:client": "esbuild src/stdb-client.ts --bundle --outfile=dist/stdb-client.js --format=iife --global-name=StdbClient --target=es2020",
+    "watch:client": "esbuild src/stdb-client.ts --bundle --outfile=dist/stdb-client.js --format=iife --global-name=StdbClient --target=es2020 --watch"
+  },
+  "dependencies": {
+    "spacetimedb": "^2.0.3"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.0",
+    "typescript": "~5.6.2"
+  }
+}

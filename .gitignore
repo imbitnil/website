@@ -1,0 +1,7 @@
+node_modules/
+test_/
+uploads/
+.DS_Store
+
+# CCR context directory
+.ccr/

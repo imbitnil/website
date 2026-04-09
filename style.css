@@ -1,0 +1,783 @@
+/* ═══════════════════════════════════════════════════════
+   Phase 1: Visual Polish — CV-Themed Identity & Micro-Interactions
+   ═══════════════════════════════════════════════════════ */
+
+/* ─── 1. Animated Gradient on "see" ─── */
+#hero h1 .gradient {
+  background: linear-gradient(
+    135deg,
+    #818cf8 0%,
+    #a78bfa 25%,
+    #34d399 50%,
+    #818cf8 75%,
+    #a78bfa 100%
+  );
+  background-size: 300% 300%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradient-shift 6s ease infinite;
+}
+
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* ─── 2. Glitch Text Effect on "see" ─── */
+.glitch-text {
+  position: relative;
+  display: inline-block;
+}
+
+.glitch-text::before,
+.glitch-text::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--bg);
+  overflow: hidden;
+  opacity: 0;
+}
+
+.glitch-text::before {
+  color: #ff6b6b;
+  -webkit-text-fill-color: #ff6b6b;
+  background: transparent;
+  animation: glitch-before 8s ease-in-out infinite;
+}
+
+.glitch-text::after {
+  color: #4ecdc4;
+  -webkit-text-fill-color: #4ecdc4;
+  background: transparent;
+  animation: glitch-after 8s ease-in-out infinite;
+}
+
+/* Initial load glitch — more aggressive */
+.glitch-text.glitch-intro::before {
+  animation: glitch-intro-before 0.6s steps(3) forwards, glitch-before 8s ease-in-out 1s infinite;
+}
+.glitch-text.glitch-intro::after {
+  animation: glitch-intro-after 0.6s steps(3) forwards, glitch-after 8s ease-in-out 1s infinite;
+}
+
+@keyframes glitch-intro-before {
+  0% { opacity: 0.8; clip-path: inset(20% 0 60% 0); transform: translateX(-4px); }
+  25% { opacity: 0.6; clip-path: inset(60% 0 10% 0); transform: translateX(3px); }
+  50% { opacity: 0.8; clip-path: inset(10% 0 40% 0); transform: translateX(-2px); }
+  75% { opacity: 0.5; clip-path: inset(50% 0 20% 0); transform: translateX(4px); }
+  100% { opacity: 0; clip-path: inset(0); transform: translateX(0); }
+}
+@keyframes glitch-intro-after {
+  0% { opacity: 0.6; clip-path: inset(50% 0 20% 0); transform: translateX(3px); }
+  25% { opacity: 0.8; clip-path: inset(10% 0 70% 0); transform: translateX(-4px); }
+  50% { opacity: 0.5; clip-path: inset(70% 0 5% 0); transform: translateX(2px); }
+  75% { opacity: 0.7; clip-path: inset(30% 0 40% 0); transform: translateX(-3px); }
+  100% { opacity: 0; clip-path: inset(0); transform: translateX(0); }
+}
+
+/* Subtle periodic re-glitch */
+@keyframes glitch-before {
+  0%, 92%, 100% { opacity: 0; transform: translateX(0); clip-path: inset(0); }
+  93% { opacity: 0.7; clip-path: inset(25% 0 55% 0); transform: translateX(-3px); }
+  95% { opacity: 0.5; clip-path: inset(65% 0 10% 0); transform: translateX(2px); }
+  97% { opacity: 0.6; clip-path: inset(10% 0 70% 0); transform: translateX(-2px); }
+}
+@keyframes glitch-after {
+  0%, 92%, 100% { opacity: 0; transform: translateX(0); clip-path: inset(0); }
+  94% { opacity: 0.5; clip-path: inset(55% 0 15% 0); transform: translateX(3px); }
+  96% { opacity: 0.7; clip-path: inset(15% 0 65% 0); transform: translateX(-3px); }
+  98% { opacity: 0.4; clip-path: inset(40% 0 30% 0); transform: translateX(2px); }
+}
+
+/* ─── 3. Scan-Line Section Reveal ─── */
+section {
+  position: relative;
+}
+
+section .scan-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(52, 211, 153, 0.05) 15%,
+    rgba(52, 211, 153, 0.6) 40%,
+    #34d399 50%,
+    rgba(52, 211, 153, 0.6) 60%,
+    rgba(52, 211, 153, 0.05) 85%,
+    transparent 100%
+  );
+  opacity: 0;
+  pointer-events: none;
+  z-index: 10;
+  box-shadow: 0 0 15px rgba(52, 211, 153, 0.3), 0 0 40px rgba(52, 211, 153, 0.1);
+}
+
+section.scan-active .scan-line {
+  animation: scan-sweep 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+@keyframes scan-sweep {
+  0% {
+    opacity: 1;
+    top: 0;
+  }
+  80% {
+    opacity: 0.6;
+  }
+  100% {
+    opacity: 0;
+    top: 100%;
+  }
+}
+
+/* Delay content reveal until scan passes */
+section.scan-active .reveal {
+  transition-delay: 0.3s;
+}
+
+/* ─── 4. Bounding Box Hover on Project Cards ─── */
+.project-card {
+  position: relative;
+}
+
+/* Detection bounding box */
+.project-card::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border: 1.5px dashed var(--accent);
+  border-radius: calc(var(--radius) + 2px);
+  opacity: 0;
+  clip-path: inset(50% 50% 50% 50%);
+  transition: clip-path 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.project-card:hover::after {
+  clip-path: inset(-3px -3px -3px -3px);
+  opacity: 1;
+}
+
+/* Detection confidence label */
+.project-card .detect-label {
+  position: absolute;
+  top: -10px;
+  left: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.04em;
+  padding: 2px 8px;
+  background: var(--accent);
+  color: var(--bg);
+  border-radius: 3px;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.3s ease 0.2s, transform 0.3s ease 0.2s;
+  z-index: 6;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.project-card:hover .detect-label {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Featured project bounding box */
+.featured-project {
+  position: relative;
+  margin-top: 14px;
+}
+.featured-project::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border: 1.5px dashed var(--accent);
+  border-radius: calc(var(--radius) + 2px);
+  opacity: 0;
+  clip-path: inset(50% 50% 50% 50%);
+  transition: clip-path 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+  pointer-events: none;
+  z-index: 5;
+}
+.featured-project:hover::after {
+  clip-path: inset(-3px -3px -3px -3px);
+  opacity: 1;
+}
+.featured-project .detect-label {
+  position: absolute;
+  top: -10px;
+  left: 16px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.04em;
+  padding: 2px 8px;
+  background: var(--accent);
+  color: var(--bg);
+  border-radius: 3px;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.3s ease 0.2s, transform 0.3s ease 0.2s;
+  z-index: 6;
+  pointer-events: none;
+}
+.featured-project:hover .detect-label {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ─── 5. Custom Crosshair Cursor ─── */
+.cv-cursor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 10001;
+  mix-blend-mode: difference;
+  will-change: transform;
+}
+
+.cv-cursor .cursor-ring {
+  width: 32px;
+  height: 32px;
+  border: 1.5px solid rgba(255, 255, 255, 0.7);
+  border-radius: 50%;
+  position: absolute;
+  top: -16px;
+  left: -16px;
+  transition: width 0.25s ease, height 0.25s ease, top 0.25s ease, left 0.25s ease,
+              border-color 0.25s ease, border-width 0.25s ease;
+}
+
+.cv-cursor .cursor-h,
+.cv-cursor .cursor-v {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.cv-cursor .cursor-h {
+  width: 12px;
+  height: 1px;
+  top: 0;
+  left: -6px;
+}
+
+.cv-cursor .cursor-v {
+  width: 1px;
+  height: 12px;
+  top: -6px;
+  left: 0;
+}
+
+.cv-cursor .cursor-dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  position: absolute;
+  top: -1.5px;
+  left: -1.5px;
+}
+
+/* Corner brackets (detection box feel) */
+.cv-cursor .cursor-corner {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-color: rgba(255, 255, 255, 0.5);
+  border-style: solid;
+  border-width: 0;
+  transition: opacity 0.25s ease;
+}
+.cv-cursor .cursor-corner.tl { top: -20px; left: -20px; border-top-width: 1px; border-left-width: 1px; }
+.cv-cursor .cursor-corner.tr { top: -20px; right: -20px; border-top-width: 1px; border-right-width: 1px; }
+.cv-cursor .cursor-corner.bl { bottom: -20px; left: -20px; border-bottom-width: 1px; border-left-width: 1px; }
+.cv-cursor .cursor-corner.br { bottom: -20px; right: -20px; border-bottom-width: 1px; border-right-width: 1px; }
+
+/* Cursor hover state on interactive elements */
+.cv-cursor.hovering .cursor-ring {
+  width: 48px;
+  height: 48px;
+  top: -24px;
+  left: -24px;
+  border-color: rgba(129, 140, 248, 0.8);
+  border-width: 2px;
+}
+
+.cv-cursor.hovering .cursor-corner {
+  opacity: 0;
+}
+
+/* Coordinate readout */
+.cv-cursor .cursor-coords {
+  position: absolute;
+  top: 20px;
+  left: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 8px;
+  color: rgba(255, 255, 255, 0.35);
+  white-space: nowrap;
+  letter-spacing: 0.05em;
+}
+
+/* Hide custom cursor on mobile / touch */
+@media (pointer: coarse) {
+  .cv-cursor { display: none !important; }
+}
+
+/* Hide default cursor on desktop when custom cursor is active */
+html.custom-cursor-active,
+html.custom-cursor-active * {
+  cursor: none !important;
+}
+
+/* ═══════════════════════════════════════════════════════
+   Phase 2: Interactive Delight
+   ═══════════════════════════════════════════════════════ */
+
+/* ─── 6. 3D Card Tilt ─── */
+.tilt-card {
+  transform-style: preserve-3d;
+  will-change: transform;
+  transition: transform 0.1s ease;
+}
+
+/* Light reflection overlay */
+.tilt-card .tilt-glare {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius);
+  pointer-events: none;
+  z-index: 3;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  background: radial-gradient(
+    circle at var(--glare-x, 50%) var(--glare-y, 50%),
+    rgba(255, 255, 255, 0.08) 0%,
+    transparent 60%
+  );
+}
+
+.tilt-card:hover .tilt-glare {
+  opacity: 1;
+}
+
+/* Reset on leave — smooth return */
+.tilt-card.tilt-reset {
+  transition: transform 0.5s cubic-bezier(0.33, 1, 0.68, 1);
+}
+
+/* ─── 7. Magnetic Buttons ─── */
+.magnetic {
+  will-change: transform;
+  transition: transform 0.3s cubic-bezier(0.33, 1, 0.68, 1);
+}
+
+.magnetic.mag-active {
+  transition: transform 0.05s linear;
+}
+
+/* ─── 8. Text Split / Reveal ─── */
+.split-heading .word {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: top;
+}
+
+.split-heading .char {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(100%) rotateX(-80deg);
+  transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: bottom center;
+}
+
+/* Whitespace between words */
+.split-heading .word-space {
+  display: inline-block;
+  width: 0.3em;
+}
+
+.split-heading.animate-text .char {
+  opacity: 1;
+  transform: translateY(0) rotateX(0);
+}
+
+/* ─── 9. Scroll Progress Bar ─── */
+.scroll-progress {
+  position: fixed;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  pointer-events: none;
+}
+
+.scroll-progress-track {
+  width: 2px;
+  height: 200px;
+  background: var(--border);
+  border-radius: 2px;
+  position: relative;
+  overflow: hidden;
+}
+
+.scroll-progress-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 0%;
+  background: linear-gradient(to bottom, var(--accent), var(--green));
+  border-radius: 2px;
+  transition: height 0.1s linear;
+}
+
+.scroll-progress-dots {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.scroll-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  position: relative;
+  left: -3px;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+  pointer-events: all;
+}
+
+.scroll-dot:hover {
+  border-color: var(--text-muted);
+}
+
+.scroll-dot.active {
+  border-color: var(--accent);
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent-glow), 0 0 20px var(--accent-glow);
+}
+
+/* Section label tooltip */
+.scroll-dot::before {
+  content: attr(data-label);
+  position: absolute;
+  right: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 2px 8px;
+  border-radius: 4px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.scroll-dot:hover::before {
+  opacity: 1;
+}
+
+/* ─── 10. Scroll-Linked Timeline ─── */
+.timeline {
+  --timeline-progress: 0;
+}
+
+.timeline::before {
+  background: linear-gradient(
+    to bottom,
+    var(--accent) calc(var(--timeline-progress) * 100%),
+    var(--border) calc(var(--timeline-progress) * 100%)
+  ) !important;
+  transition: background 0.1s linear;
+}
+
+.timeline-item::before {
+  transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease !important;
+}
+
+.timeline-item.timeline-active::before {
+  background: var(--accent) !important;
+  transform: translateX(-3.5px) scale(1.5) !important;
+  box-shadow: 0 0 10px var(--accent-glow), 0 0 25px var(--accent-glow) !important;
+}
+
+/* Hide progress bar and simplify on mobile */
+@media (max-width: 768px) {
+  .scroll-progress { display: none; }
+}
+
+/* ═══════════════════════════════════════════════════════
+   Phase 3: Storytelling & Polish
+   ═══════════════════════════════════════════════════════ */
+
+/* ─── 11. Parallax Depth Layers ─── */
+[data-parallax] {
+  will-change: transform;
+}
+
+/* ─── 12. CV Pipeline Dividers ─── */
+.pipeline-divider {
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 0.5rem 2rem;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.pipeline-divider.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.pipeline-divider svg {
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.pipeline-line {
+  stroke-dasharray: 800;
+  stroke-dashoffset: 800;
+  transition: stroke-dashoffset 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pipeline-divider.visible .pipeline-line {
+  stroke-dashoffset: 0;
+}
+
+.pipeline-node {
+  opacity: 0;
+  transform: scale(0.8);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.pipeline-divider.visible .pipeline-node {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Stagger each node */
+.pipeline-divider.visible .pipeline-node:nth-child(2) { transition-delay: 0.3s; }
+.pipeline-divider.visible .pipeline-node:nth-child(3) { transition-delay: 0.5s; }
+.pipeline-divider.visible .pipeline-node:nth-child(4) { transition-delay: 0.7s; }
+.pipeline-divider.visible .pipeline-node:nth-child(5) { transition-delay: 0.9s; }
+
+.pipeline-arrow {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.pipeline-divider.visible .pipeline-arrow {
+  opacity: 1;
+  transition-delay: 0.6s;
+}
+
+/* ─── 13. Display Font for Headings ─── */
+h1, h2 {
+  font-family: 'Space Grotesk', 'Inter', sans-serif !important;
+  font-weight: 700;
+}
+
+#hero h1 {
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+
+h2 {
+  letter-spacing: -0.03em;
+}
+
+/* ─── 14. Blog Film Strip Layout ─── */
+.blog-grid {
+  display: flex !important;
+  overflow-x: auto;
+  gap: 1.5rem;
+  padding: 2rem 0.5rem 2rem 0.5rem;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.blog-grid::-webkit-scrollbar {
+  display: none;
+}
+
+.blog-card {
+  flex: 0 0 340px;
+  scroll-snap-align: start;
+  transform: rotate(var(--card-rot, 0deg));
+  transition: transform 0.4s cubic-bezier(0.33, 1, 0.68, 1),
+              border-color 0.3s ease,
+              box-shadow 0.3s ease;
+}
+
+.blog-card:hover {
+  transform: rotate(0deg) translateY(-6px) !important;
+}
+
+/* Film sprocket holes along top edge */
+.blog-card::before {
+  content: '' !important;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent 0px,
+    transparent 10px,
+    var(--accent) 10px,
+    var(--accent) 14px,
+    transparent 14px,
+    transparent 24px
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+
+.blog-card:hover::before {
+  opacity: 0.6;
+}
+
+/* Film frame number */
+.blog-card::after {
+  content: attr(data-frame);
+  position: absolute;
+  bottom: 8px;
+  right: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.55rem;
+  color: var(--text-muted);
+  opacity: 0.3;
+  letter-spacing: 0.08em;
+}
+
+/* Scroll hint gradient at edges */
+#blog {
+  position: relative;
+}
+
+#blog::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 60px;
+  background: linear-gradient(to left, var(--bg), transparent);
+  pointer-events: none;
+  z-index: 2;
+}
+
+@media (max-width: 768px) {
+  .blog-card {
+    flex: 0 0 280px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   Phase 4: Premium
+   ═══════════════════════════════════════════════════════ */
+
+/* ─── 16. Orbital Tech Stack ─── */
+.tech-orbital-wrap {
+  position: relative;
+  width: 100%;
+  height: 400px;
+}
+
+.tech-orbital-wrap canvas {
+  width: 100%;
+  height: 100%;
+}
+
+/* Show orbital on desktop, hide on mobile */
+@media (max-width: 768px) {
+  .tech-orbital-wrap { display: none; }
+  .tech-stack-fallback { display: grid !important; }
+}
+@media (min-width: 769px) {
+  .tech-stack-fallback { display: none !important; }
+}
+
+/* ─── 17. Contact Particles ─── */
+#contact-particles-canvas {
+  opacity: 0.6;
+}
+
+/* ─── Reduced Motion ─── */
+@media (prefers-reduced-motion: reduce) {
+  #hero h1 .gradient {
+    animation: none;
+  }
+  .glitch-text::before,
+  .glitch-text::after,
+  .glitch-text.glitch-intro::before,
+  .glitch-text.glitch-intro::after {
+    animation: none !important;
+    opacity: 0 !important;
+  }
+  section.scan-active .scan-line {
+    animation: none;
+    opacity: 0;
+  }
+  .project-card::after {
+    transition: none;
+  }
+  .cv-cursor {
+    display: none !important;
+  }
+  .split-heading .char {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+  .tilt-card {
+    transform: none !important;
+  }
+  .scroll-progress { display: none; }
+  [data-parallax] {
+    transform: none !important;
+  }
+  .pipeline-divider {
+    opacity: 1;
+    transform: none;
+  }
+  .pipeline-line { stroke-dashoffset: 0; }
+  .pipeline-node { opacity: 1; transform: none; }
+  .pipeline-arrow { opacity: 1; }
+  .blog-card {
+    transform: none !important;
+  }
+}
